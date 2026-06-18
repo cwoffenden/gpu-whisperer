@@ -2,10 +2,10 @@
 #include <cstdlib>
 #include <cstdio>
 
-#define GLFW_INCLUDE_GLCOREARB
-#define GLFW_INCLUDE_GLEXT
 #ifdef __APPLE__
 #define GL_SILENCE_DEPRECATION
+#define GLFW_INCLUDE_GLCOREARB
+#define GLFW_INCLUDE_GLEXT
 #endif
 #include <GLFW/glfw3.h>
 
