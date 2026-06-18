@@ -37,6 +37,16 @@ struct BCBlock {
 
 static_assert(sizeof(BCBlock) == 8, "BC block should be 8 bytes");
 
+static uint32_t fpBits(float val) {
+	union {
+		float    f;
+		uint32_t u;
+	} bits = {
+		val
+	};
+	return bits.u;
+}
+
 BCBlock block[2] = {};
 
 GLuint txName = 0;
@@ -58,11 +68,18 @@ void setup() {
 	GLenum err = glGetError();
 	assert(err == 0);
 
-	printf("%0.8f\n%0.8f\n%0.8f\n%0.8f\n", f32[0][0], f32[0][1], f32[1][0], f32[1][1]);
+	printf("Floats\n");
+	printf("%0.9f\n%0.9f\n%0.9f\n%0.9f\n", f32[0][0], f32[0][1], f32[1][0], f32[1][1]);
 	printf("\n");
+	printf("Float bits\n");
+	printf("0x%08X\n0x%08X\n0x%08X\n0x%08X\n", fpBits(f32[0][0]), fpBits(f32[0][1]), fpBits(f32[1][0]), fpBits(f32[1][1]));
+	printf("\n");
+	printf("Shorts\n");
 	printf("0x%04X\n0x%04X\n0x%04X\n0x%04X\n", u16[0][0], u16[0][1], u16[1][0], u16[1][1]);
 	printf("\n");
+	printf("Bytes\n");
 	printf("0x%02X\n0x%02X\n0x%02X\n0x%02X\n", u08[0][0], u08[0][1], u08[1][0], u08[1][1]);
+	printf("\n");
 }
 
 void draw(GLFWwindow* window) {
