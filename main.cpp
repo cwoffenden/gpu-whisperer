@@ -1,17 +1,12 @@
 #include <cassert>
 #include <cstdlib>
+#include <cstdio>
 
-#if TARGET_OS_MAC && !TARGET_OS_IPHONE
+#define GLFW_INCLUDE_GLCOREARB
+#define GLFW_INCLUDE_GLEXT
+#ifdef __APPLE__
 #define GL_SILENCE_DEPRECATION
-#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
-#define GL3_PROTOTYPES
-#include <OpenGL/gl3.h>
-#else
-#include <OpenGL/gl.h>
 #endif
-#include <OpenGL/glext.h>
-#endif
-
 #include <GLFW/glfw3.h>
 
 struct BCBlock {
@@ -49,7 +44,7 @@ GLuint txName = 0;
 void setup() {
 	block[1].bc1.endpt[0].r = 31;
 	block[1].bc1.endpt[1].r = 9;
-	block[1].bc1.texels.bits = 0xBB44BB44;
+	block[1].bc1.texels.bits = 0xEE44EE44;
 	glGenTextures(1, &txName);
 	glBindTexture(GL_TEXTURE_2D, txName);
 	glCompressedTexImage2D(GL_TEXTURE_2D, 0, GL_COMPRESSED_RGBA_S3TC_DXT3_EXT, 4, 4, 0, 16, &block);
@@ -62,6 +57,12 @@ void setup() {
 	glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_UNSIGNED_BYTE, u08);
 	GLenum err = glGetError();
 	assert(err == 0);
+
+	printf("%0.8f\n%0.8f\n%0.8f\n%0.8f\n", f32[0][0], f32[0][1], f32[1][0], f32[1][1]);
+	printf("\n");
+	printf("0x%04X\n0x%04X\n0x%04X\n0x%04X\n", u16[0][0], u16[0][1], u16[1][0], u16[1][1]);
+	printf("\n");
+	printf("0x%02X\n0x%02X\n0x%02X\n0x%02X\n", u08[0][0], u08[0][1], u08[1][0], u08[1][1]);
 }
 
 void draw(GLFWwindow* window) {
