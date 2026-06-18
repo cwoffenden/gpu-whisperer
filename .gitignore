@@ -1,0 +1,11 @@
+.DS_Store
+a.out
+*.obj
+*.exe
+*.html
+*.js
+*.wasm
+
+.vs/
+out/
+build/
