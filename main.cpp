@@ -33,31 +33,31 @@ struct BCBlock {
 		} bc1;
 		union {
 			struct {
-				uint32_t _pad: 16;
-				uint32_t texels: 24;
+				uint64_t       : 16;
+				uint64_t texels: 48;
 			};
 			struct {
 				uint8_t endpt[2];
 				struct __attribute__((packed)) {
-					uint8_t y0x0: 3;
-					uint8_t y0x1: 3;
-					uint8_t y0x2: 3;
-					uint8_t y0x3: 3;
+					uint32_t y0x0: 3;
+					uint32_t y0x1: 3;
+					uint32_t y0x2: 3;
+					uint32_t y0x3: 3;
 
-					uint8_t y1x0: 3;
-					uint8_t y1x1: 3;
-					uint8_t y1x2: 3;
-					uint8_t y1x3: 3;
+					uint32_t y1x0: 3;
+					uint32_t y1x1: 3;
+					uint32_t y1x2: 3;
+					uint32_t y1x3: 3;
 						
-					uint8_t y2x0: 3;
-					uint8_t y2x1: 3;
-					uint8_t y2x2: 3;
-					uint8_t y2x3: 3;
+					uint32_t y2x0: 3;
+					uint32_t y2x1: 3;
+					uint32_t y2x2: 3;
+					uint32_t y2x3: 3;
 						
-					uint8_t y3x0: 3;
-					uint8_t y3x1: 3;
-					uint8_t y3x2: 3;
-					uint8_t y3x3: 3;
+					uint32_t y3x0: 3;
+					uint32_t y3x1: 3;
+					uint32_t y3x2: 3;
+					uint32_t y3x3: 3;
 				};
 			};
 		} bc4;
