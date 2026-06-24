@@ -214,9 +214,23 @@ void bc4RedTest() {
 	glDeleteTextures(1, &txName);
 }
 
+void red8Test() {
+	uint8_t block[16] = {0xFF, 0x00, 0xDB, 0xB6, 0x92, 0x6D, 0x49, 0x24};
+
+	GLuint txName = 0;
+	glGenTextures(1, &txName);
+	glBindTexture(GL_TEXTURE_2D, txName);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, 4, 4, 0, GL_RED, GL_UNSIGNED_BYTE, block);
+
+	dumpBoundRedChannel(true);
+
+	glDeleteTextures(1, &txName);
+}
+
 void setup() {
-	bc3RedTest();
+	//bc3RedTest();
 	bc4RedTest();
+	red8Test();
 }
 
 void draw(GLFWwindow* window) {
