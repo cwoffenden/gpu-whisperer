@@ -198,6 +198,16 @@ void dumpBoundChannelData(bool eight = false, ChannelIndex ch = CHANNEL_R) {
 	assert(glGetError() == 0);
 }
 
+/**
+ * Filter to nearest and clamp to edge the current bound texture.
+ */
+void filterClampBoilerplate() {
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+}
+
 void bc3RedTest() {
 	BCBlock block[2] = {{/*unused alpha*/}, {0x00, 0x00, 0x00, 0x00, 0xE4, 0x39, 0x4E, 0x93}};
 	block[1].bc1.endpt[0].r = 31;
@@ -207,8 +217,7 @@ void bc3RedTest() {
 	glGenTextures(1, &txName);
 	glBindTexture(GL_TEXTURE_2D, txName);
 	glCompressedTexImage2D(GL_TEXTURE_2D, 0, GL_COMPRESSED_RGBA_S3TC_DXT3_EXT, 4, 4, 0, 16, block);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	filterClampBoilerplate();
 
 	dumpBoundChannelData(false);
 
@@ -225,8 +234,7 @@ void bc4RedTest() {
 	glGenTextures(1, &txName);
 	glBindTexture(GL_TEXTURE_2D, txName);
 	glCompressedTexImage2D(GL_TEXTURE_2D, 0, GL_COMPRESSED_RED_RGTC1, 4, 4, 0, 8, block);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	filterClampBoilerplate();
 	
 	dumpBoundChannelData(true);
 
@@ -235,14 +243,13 @@ void bc4RedTest() {
 }
 
 void red8Test() {
-	uint8_t block[16] = {0xFF, 0x00, 0xDB, 0xB6, 0x92, 0x6D, 0x49, 0x24};
+	uint8_t const block[16] = {0xFF, 0x00, 0xDB, 0xB6, 0x92, 0x6D, 0x49, 0x24};
 
 	GLuint txName = 0;
 	glGenTextures(1, &txName);
 	glBindTexture(GL_TEXTURE_2D, txName);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, 4, 4, 0, GL_RED, GL_UNSIGNED_BYTE, block);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	filterClampBoilerplate();
 
 	dumpBoundChannelData(true);
 
@@ -329,10 +336,8 @@ void computeTest() {
 	glGenTextures(1, &srcTxName);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, srcTxName);
-	// needs GL_IMAGE_FORMAT_COMPATIBILITY_BY_SIZE
 	glCompressedTexImage2D(GL_TEXTURE_2D, 0, GL_COMPRESSED_RGBA_S3TC_DXT3_EXT, 4, 4, 0, 16, block);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	filterClampBoilerplate();
 
 	/*
 	uint8_t red4x4[16] = {0xFF, 0x00, 0xDB, 0xB6, 0x92, 0x6D, 0x49, 0x24};
@@ -342,8 +347,7 @@ void computeTest() {
 	glBindTexture(GL_TEXTURE_2D, srcTxName);
 	// needs GL_IMAGE_FORMAT_COMPATIBILITY_BY_SIZE
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, 4, 4, 0, GL_RED, GL_UNSIGNED_BYTE, red4x4);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	filterClampBoilerplate();
 	glBindTexture(GL_TEXTURE_2D, 0);
 	glBindImageTexture(0, srcTxName, 0, GL_FALSE, 0, GL_READ_ONLY, GL_R8);
 	 */
@@ -364,6 +368,84 @@ void computeTest() {
 	printf("Control 0x55: 0x%08X (%0.8f)\n", floatBits(0x55 / 255.0f), 0x55 / 255.0f);
 }
 
+GLchar const vertShaderTexture[] =
+	"#version 330 core\n"
+	"uniform sampler2D srcTx;"
+	"attribute vec2 aPosn;"
+	"void main() {\n"
+	"	gl_Position = vec4(aPosn.x, aPosn.y, 0.0, 1.0);\n"
+	"}\n";
+
+GLchar const fragShaderTexture[] =
+	"#version 330 core\n"
+	"void main() {\n"
+	"	gl_FragColor = vec4(1.0 / 3.0);\n"
+	"}\n";
+
+void framebufferTest() {
+	GLuint fbTx = 0;
+	glGenTextures(1, &fbTx);
+	glBindTexture(GL_TEXTURE_2D, fbTx);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 4, 4, 0, GL_RGBA, GL_FLOAT, NULL);
+	filterClampBoilerplate();
+	glBindTexture(GL_TEXTURE_2D, 0);
+	assert(glGetError() == 0);
+
+	GLuint fbuf = 0;
+	glCreateFramebuffers(1, &fbuf);
+	glBindFramebuffer(GL_FRAMEBUFFER, fbuf);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fbTx, 0);
+	assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
+	assert(glGetError() == 0);
+
+	uint8_t const block[16] = {0xFF, 0x00, 0xDB, 0xB6, 0x92, 0x6D, 0x49, 0x24};
+	GLuint txName = 0;
+	glGenTextures(1, &txName);
+	glBindTexture(GL_TEXTURE_2D, txName);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, 4, 4, 0, GL_RED, GL_UNSIGNED_BYTE, block);
+	filterClampBoilerplate();
+
+	float const verts[]= {
+		 1.0f,  1.0f,
+		-1.0f,  1.0f,
+		-1.0f, -1.0f,
+		-1.0f, -1.0f,
+		 1.0f, -1.0f,
+		 1.0f,  1.0f,
+	};
+	GLuint quad = 0;
+	glGenBuffers(1, &quad);
+	glBindBuffer(GL_ARRAY_BUFFER, quad);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STATIC_DRAW);
+	assert(glGetError() == 0);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
+	assert(glGetError() == 0);
+	glEnableVertexAttribArray(0);
+	assert(glGetError() == 0);
+
+	GLuint vert = compileShaderText(GL_VERTEX_SHADER,   vertShaderTexture);
+	GLuint frag = compileShaderText(GL_FRAGMENT_SHADER, fragShaderTexture);
+	GLuint prog = glCreateProgram();
+	glAttachShader(prog, vert);
+	glAttachShader(prog, frag);
+	glLinkProgram(prog);
+	glUseProgram (prog);
+	assert(glGetError() == 0);
+
+	glViewport(0, 0, 4, 4);
+	glClearColor(0.25f, 0.25f, 0.25f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT);
+
+	glBindBuffer(GL_ARRAY_BUFFER, quad);
+	glDrawArrays(GL_TRIANGLES, 0, 6);
+	glFinish();
+	glMemoryBarrier(GL_ALL_BARRIER_BITS);
+	assert(glGetError() == 0);
+
+	glBindTexture(GL_TEXTURE_2D, fbTx);
+	dumpBoundChannelData(true);
+}
+
 void APIENTRY debugCallback(GLenum /*source*/, GLenum /*type*/, GLuint /*id*/, GLenum /*severity*/, GLsizei /*length*/, const GLchar* message, const void* /*userParam*/) {
 	printf("GL debug: %s\n", message);
 }
@@ -374,7 +456,8 @@ void setup() {
 	//bc3RedTest();
 	//bc4RedTest();
 	//red8Test();
-	computeTest();
+	//computeTest();
+	framebufferTest();
 }
 
 void draw(GLFWwindow* window) {
@@ -389,9 +472,9 @@ int main(int /*argc*/, char* /*argv*/[]) {
 	if (!glfwInit()) {
 		exit(EXIT_FAILURE);
 	}
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
+	//glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); //<-- Re-enable this and add VAO support
 #ifdef __APPLE__
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
