@@ -11,6 +11,10 @@
 #define GL_GLEXT_PROTOTYPES
 #include <GLFW/glfw3.h>
 
+#ifndef GL_COMPRESSED_RGBA_S3TC_DXT3_EXT
+#define GL_COMPRESSED_RGBA_S3TC_DXT3_EXT 0x83F2
+#endif
+
 struct BCBlock {
 	union {
 		uint8_t raw[8];
@@ -288,6 +292,7 @@ static GLuint compileShaderText(GLenum const type, const GLchar* const text) {
 	return 0;
 }
 
+#ifndef __APPLE__
 GLchar const computeShaderTexture[] =
 	"#version 430 core\n"
 	"layout(binding = 0) uniform sampler2D srcTx;\n"
@@ -367,19 +372,21 @@ void computeTest() {
 	printf("Control 0xAA: 0x%08X (%0.8f)\n", floatBits(0xAA / 255.0f), 0xAA / 255.0f);
 	printf("Control 0x55: 0x%08X (%0.8f)\n", floatBits(0x55 / 255.0f), 0x55 / 255.0f);
 }
+#endif
 
 GLchar const vertShaderTexture[] =
 	"#version 330 core\n"
 	"uniform sampler2D srcTx;"
-	"attribute vec2 aPosn;"
+	"in vec2 aPosn;"
 	"void main() {\n"
 	"	gl_Position = vec4(aPosn.x, aPosn.y, 0.0, 1.0);\n"
 	"}\n";
 
 GLchar const fragShaderTexture[] =
 	"#version 330 core\n"
+    "out vec4 FragColor;\n"
 	"void main() {\n"
-	"	gl_FragColor = vec4(1.0 / 3.0);\n"
+	"	FragColor = vec4(1.0 / 3.0);\n"
 	"}\n";
 
 void framebufferTest() {
@@ -392,7 +399,7 @@ void framebufferTest() {
 	assert(glGetError() == 0);
 
 	GLuint fbuf = 0;
-	glCreateFramebuffers(1, &fbuf);
+	glGenFramebuffers(1, &fbuf);
 	glBindFramebuffer(GL_FRAMEBUFFER, fbuf);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fbTx, 0);
 	assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
@@ -404,6 +411,15 @@ void framebufferTest() {
 	glBindTexture(GL_TEXTURE_2D, txName);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, 4, 4, 0, GL_RED, GL_UNSIGNED_BYTE, block);
 	filterClampBoilerplate();
+
+    GLuint vert = compileShaderText(GL_VERTEX_SHADER,   vertShaderTexture);
+    GLuint frag = compileShaderText(GL_FRAGMENT_SHADER, fragShaderTexture);
+    GLuint prog = glCreateProgram();
+    glAttachShader(prog, vert);
+    glAttachShader(prog, frag);
+    glLinkProgram(prog);
+    glUseProgram (prog);
+    assert(glGetError() == 0);
 
 	float const verts[]= {
 		 1.0f,  1.0f,
@@ -423,15 +439,6 @@ void framebufferTest() {
 	glEnableVertexAttribArray(0);
 	assert(glGetError() == 0);
 
-	GLuint vert = compileShaderText(GL_VERTEX_SHADER,   vertShaderTexture);
-	GLuint frag = compileShaderText(GL_FRAGMENT_SHADER, fragShaderTexture);
-	GLuint prog = glCreateProgram();
-	glAttachShader(prog, vert);
-	glAttachShader(prog, frag);
-	glLinkProgram(prog);
-	glUseProgram (prog);
-	assert(glGetError() == 0);
-
 	glViewport(0, 0, 4, 4);
 	glClearColor(0.25f, 0.25f, 0.25f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
@@ -439,7 +446,6 @@ void framebufferTest() {
 	glBindBuffer(GL_ARRAY_BUFFER, quad);
 	glDrawArrays(GL_TRIANGLES, 0, 6);
 	glFinish();
-	glMemoryBarrier(GL_ALL_BARRIER_BITS);
 	assert(glGetError() == 0);
 
 	glBindTexture(GL_TEXTURE_2D, fbTx);
@@ -451,8 +457,10 @@ void APIENTRY debugCallback(GLenum /*source*/, GLenum /*type*/, GLuint /*id*/, G
 }
 
 void setup() {
+#ifndef __APPLE__
 	glDebugMessageCallback(debugCallback, NULL);
 	glEnable(GL_DEBUG_OUTPUT);
+#endif
 	//bc3RedTest();
 	//bc4RedTest();
 	//red8Test();
@@ -472,9 +480,9 @@ int main(int /*argc*/, char* /*argv*/[]) {
 	if (!glfwInit()) {
 		exit(EXIT_FAILURE);
 	}
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
-	//glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); //<-- Re-enable this and add VAO support
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); //<-- Re-enable this and add VAO support
 #ifdef __APPLE__
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
