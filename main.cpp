@@ -410,16 +410,10 @@ void computeTest() {
 	glBindImageTexture(1, dstTxName, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R32F);
 	assert(glGetError() == 0);
 
-	BCBlock block[2] = {{}, {0x00, 0x00, 0x00, 0x00, 0xE4, 0x39, 0x4E, 0x93}};
-	block[1].bc1.endpt[0].r = 31;
-	block[1].bc1.endpt[1].r =  0;
-
 	GLuint srcTxName = 0;
 	glGenTextures(1, &srcTxName);
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, srcTxName);
-	glCompressedTexImage2D(GL_TEXTURE_2D, 0, GL_COMPRESSED_RGBA_S3TC_DXT3_EXT, 4, 4, 0, 16, block);
-	filterClampBoilerplate();
+	create4x4RedBC4(srcTxName);
 
 	/*
 	uint8_t red4x4[16] = {0xFF, 0x00, 0xDB, 0xB6, 0x92, 0x6D, 0x49, 0x24};
@@ -440,7 +434,7 @@ void computeTest() {
 	assert(glGetError() == 0);
 
 	glBindTexture(GL_TEXTURE_2D, dstTxName);
-	dumpBoundChannelData();
+	dumpBoundChannelData(true);
 	glBindTexture(GL_TEXTURE_2D, 0);
 
 	glDeleteTextures(1, &srcTxName);
