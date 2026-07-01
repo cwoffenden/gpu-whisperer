@@ -268,7 +268,7 @@ void create4x4RedBC4Vals(GLuint txId) {
  * endpoint runs down the Y-axis (being stable in the X).
  *
  * \note The \a channel determines the maximum endpoint values and the eventual
- * texture size: \c GL_RED and \GL_BLUE are \c 31, \c GL_GREEN is \c 63, and
+ * texture size: \c GL_RED and \c GL_BLUE are \c 31, \c GL_GREEN is \c 63, and
  * \c GL_ALPHA is \c 255 (but note that the interpolations should have more
  * accuracy for BC4 than BC3 alpha).
  *
