@@ -1,8 +1,8 @@
-# BC Values
+# BC Xtractor
 
-Tool to extract S3TC (BC/DXT) compressed values from hardware. 
+Tool to extract precise compressed texture data from hardware. 
 
-It needs GLFW to build. On Mac, either install using [Homebrew](//formulae.brew.sh/formula/glfw) or build from source:
+It needs [GLFW](//www.glfw.org/) to build. On Mac, either install using [Homebrew](//formulae.brew.sh/formula/glfw) or build from source:
 ```
 git clone https://github.com/glfw/glfw.git GLFW
 cd GLFW
@@ -13,5 +13,5 @@ sudo cmake --install build
 ```
 On Linux, tested on Debian, do:
 ```
-sudo apt install libglfw3-dev
+sudo apt install libglfw3-dev libdecor-0-dev
 ```
