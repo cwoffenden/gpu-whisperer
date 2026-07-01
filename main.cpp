@@ -14,6 +14,9 @@
 #ifndef GL_COMPRESSED_RGBA_S3TC_DXT3_EXT
 #define GL_COMPRESSED_RGBA_S3TC_DXT3_EXT 0x83F2
 #endif
+#ifndef GL_RGBA32F
+#define GL_RGBA32F GL_RGBA32F_EXT
+#endif
 
 /**
  * \def DEBUG_DRAW_QUAD
@@ -265,8 +268,8 @@ void create4x4RedBC3(GLuint txId) {
 	BCBlock block[2] = {{/*unused alpha*/}, {
 		0x00, 0x00,
 		0x00, 0x00,
-		0xE4, 0x39,
-		0x4E, 0x93}
+		0xE4, 0x39, // 0123 | 1230
+		0x4E, 0x93} // 2301 | 3012
 	};
 	block[1].bc1.endpt[0].r = 31;
 	block[1].bc1.endpt[1].r =  0;
@@ -275,23 +278,57 @@ void create4x4RedBC3(GLuint txId) {
 }
 
 /**
+ * Creates a red-only BC4 texture grid with endpoints varying between the
+ * specified minimum and maximum. Variance in the first endpoint (\c red0 in the
+ * Khronos RGTC specification) runs down the Y-axis (being stable in the X).
+ *
+ * \param[in] pre-generated texture ID to use
+ * \param[in] min0 minimum first endpoint
+ * \param[in] max0 maximum first endpoint (inclusive)
+ * \param[in] min1 minimum second endpoint
+ * \param[in] max1 maximum second endpoint (inclusive)
+ * \return the number of 4x4 entries
+ */
+unsigned createRedBC4(GLuint txId, unsigned min0 = 255, unsigned max0 = 255, unsigned min1 = 0, unsigned max1 = 0) {
+	assert(txId);
+	assert(min0 < 256 && max0 < 256 && min0 <= max0);
+	assert(min1 < 256 && max1 < 256 && min1 <= max1);
+	GLsizei gridW = (max1 + 1) - min1;
+	GLsizei gridH = (max0 + 1) - min0;
+	GLsizei grids = gridW * gridH;
+	if (grids > 0 && grids <= (256 * 256)) {
+		BCBlock* const data = new BCBlock[gridH * gridW];
+		BCBlock* next = data;
+		for(unsigned gridY = min0; gridY <= max0; gridY++) {
+			for(unsigned gridX = min1; gridX <= max1; gridX++) {
+				new(next) BCBlock(
+					0x00, 0x00,
+					0x88, 0xC6, 0xFA, // 01234567
+					0x77, 0x39, 0x05  // 76543210
+				);
+				next->bc4.endpt[0] = gridY;
+				next->bc4.endpt[1] = gridX;
+				next++;
+			}
+		}
+		glBindTexture(GL_TEXTURE_2D, txId);
+		glCompressedTexImage2D(GL_TEXTURE_2D, 0, GL_COMPRESSED_RED_RGTC1,
+			gridW * 4, gridH * 4, 0,
+				gridH * gridW * sizeof(BCBlock), data);
+		filterClampBoilerplate();
+		glFlush();
+		return grids;
+	}
+	return 0;
+}
+
+/**
  * Creates a 4x4 compressed BC4 texture.
  *
  * \param[in] txId pre-generated texture ID to use
  */
 void create4x4RedBC4(GLuint txId) {
-	assert(txId);
-	glBindTexture(GL_TEXTURE_2D, txId);
-	BCBlock block[1] = {{
-		0x00,
-		0x00,
-		0x88, 0xC6, 0xFA,
-		0x77, 0x39, 0x05
-	}};
-	block[0].bc4.endpt[0] = 255;
-	block[0].bc4.endpt[1] =   0;
-	glCompressedTexImage2D(GL_TEXTURE_2D, 0, GL_COMPRESSED_RED_RGTC1, 4, 4, 0, 8, block);
-	filterClampBoilerplate();
+	createRedBC4(txId, 255, 255, 0, 0);
 }
 
 void bc3RedTest() {
@@ -442,6 +479,8 @@ void computeTest() {
 }
 #endif
 
+//**************************** Framebuffer Version ****************************/
+
 /**
  * Vertex attribute IDs.
  */
@@ -506,25 +545,48 @@ void deleteVertFragShaders() {
 	fragId = 0;
 }
 
-GLuint quadId = 0;
-GLuint fbTxId = 0;
+GLuint fbTxId = 0; /**< Float texture ID backing \c fbufId (RGBA). */
+GLuint fbufId = 0; /**< Framebuffer ID. */
 
-void initFramebufferTest() {
-#ifndef DEBUG_DRAW_QUAD
+/**
+ * Creates a framebuffer backed by a 32-bit \c float texture. After calling,
+ * neither the texture nor the framebuffer remain bound.
+ *
+ * \param[in] bufW framebuffer width
+ * \param[in] bufH framebuffer height
+ */
+void createFloatFramebuffer(unsigned bufW, unsigned bufH) {
 	assert(fbTxId == 0);
 	glGenTextures(1, &fbTxId);
 	glBindTexture(GL_TEXTURE_2D, fbTxId);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 4, 4, 0, GL_RGBA, GL_FLOAT, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, bufW, bufH, 0, GL_RGBA, GL_FLOAT, NULL);
 	filterClampBoilerplate();
 	glBindTexture(GL_TEXTURE_2D, 0);
 	assert(glGetError() == 0);
 
-	GLuint fbuf = 0;
-	glGenFramebuffers(1, &fbuf);
-	glBindFramebuffer(GL_FRAMEBUFFER, fbuf);
+	glGenFramebuffers(1, &fbufId);
+	glBindFramebuffer(GL_FRAMEBUFFER, fbufId);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fbTxId, 0);
 	assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	assert(glGetError() == 0);
+}
+
+/**
+ * Cleanup for \c #createFloatFramebuffer() (framebuffer and backing texture).
+ */
+void deleteFloatFramebuffer() {
+	glDeleteFramebuffers(1, &fbufId);
+	fbufId = 0;
+	glDeleteTextures(1, &fbTxId);
+	fbTxId = 0;
+}
+
+GLuint quadId = 0;
+
+void initFramebufferTest() {
+#ifndef DEBUG_DRAW_QUAD
+	createFloatFramebuffer(4, 4);
 #endif
 
 	createVertFragShaders(vertShaderTexture120, fragShaderTexture120);
@@ -555,6 +617,7 @@ void initFramebufferTest() {
 
 void drawFramebufferTest() {
 #ifndef DEBUG_DRAW_QUAD
+	glBindFramebuffer(GL_FRAMEBUFFER, fbufId);
 	glViewport(0, 0, 4, 4);
 	glClearColor(0.25f, 0.25f, 0.25f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
@@ -629,7 +692,7 @@ int main(int /*argc*/, char* /*argv*/[]) {
 	glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
 #endif
 
-	GLFWwindow* window = glfwCreateWindow(512, 512, "Test", NULL, NULL);
+	GLFWwindow* window = glfwCreateWindow(1024, 1024, "Test", NULL, NULL);
 	if (!window) {
 		exit(EXIT_FAILURE);
 	}
