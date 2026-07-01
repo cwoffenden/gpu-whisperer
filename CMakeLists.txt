@@ -8,7 +8,7 @@ cmake_minimum_required(VERSION 3.22)
 # cmake -B out -DCMAKE_BUILD_TYPE=Release
 # cmake --build out --config Release
 
-project("bc-values" DESCRIPTION "BC Texture Values Extractor")
+project("bc-xtractor" DESCRIPTION "BC Texture Data Extractor")
 
 include(CheckIPOSupported)
 
