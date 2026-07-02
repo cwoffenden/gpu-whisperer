@@ -265,6 +265,8 @@ void create4x4RedBC4Vals(GLuint txId) {
 	filterClampBoilerplate();
 }
 
+//**************************** BC Block Generation ****************************/
+
 /**
  * Internal helper to perform the work of filling a BC1 or BC3 colour block.
  * The layout is the same, the decoder type determines the result.
@@ -355,10 +357,9 @@ unsigned createBC1(GLuint txId, unsigned min0, unsigned max0, unsigned min1, uns
 	if (channel == GL_GREEN) {
 		maxWH = 64 * 64;
 	}
-	assert(count <= maxWH);
 	if (count > 0 && count <= maxWH) {
-		BCBlock* const data = new BCBlock[count];
-		BCBlock* next = data;
+		BCBlock* const blocks = new BCBlock[count];
+		BCBlock* next = blocks;
 		for(unsigned gridY = min0; gridY <= max0; gridY++) {
 			for(unsigned gridX = min1; gridX <= max1; gridX++) {
 				fillBC1Block(next++, gridY, gridX, channel);
@@ -367,10 +368,15 @@ unsigned createBC1(GLuint txId, unsigned min0, unsigned max0, unsigned min1, uns
 		glBindTexture(GL_TEXTURE_2D, txId);
 		glCompressedTexImage2D(GL_TEXTURE_2D, 0, GL_COMPRESSED_RGB_S3TC_DXT1_EXT,
 			gridW * 4, gridH * 4, 0,
-				count * sizeof(BCBlock), data);
+				count * sizeof(BCBlock), blocks);
 		filterClampBoilerplate();
 		glFlush();
-		return count;
+		delete[] blocks;
+		GLint valid = GL_FALSE;
+		glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_COMPRESSED, &valid);
+		if (valid) {
+			return count;
+		}
 	}
 	return 0;
 }
@@ -409,10 +415,9 @@ unsigned createBC3(GLuint txId, unsigned min0, unsigned max0, unsigned min1, uns
 			maxWH = 256 * 256;
 		}
 	}
-	assert(count <= maxWH);
 	if (count > 0 && count <= maxWH) {
-		BCBlock* const data = new BCBlock[count * 2];
-		BCBlock* next = data;
+		BCBlock* const blocks = new BCBlock[count * 2];
+		BCBlock* next = blocks;
 		for(unsigned gridY = min0; gridY <= max0; gridY++) {
 			for(unsigned gridX = min1; gridX <= max1; gridX++) {
 				if (channel == GL_ALPHA) {
@@ -431,10 +436,15 @@ unsigned createBC3(GLuint txId, unsigned min0, unsigned max0, unsigned min1, uns
 		glBindTexture(GL_TEXTURE_2D, txId);
 		glCompressedTexImage2D(GL_TEXTURE_2D, 0, GL_COMPRESSED_RGBA_S3TC_DXT3_EXT,
 			gridW * 4, gridH * 4, 0,
-				count * sizeof(BCBlock) * 2 /* colour + alpha */, data);
+				count * sizeof(BCBlock) * 2 /* colour + alpha */, blocks);
 		filterClampBoilerplate();
 		glFlush();
-		return count;
+		delete[] blocks;
+		GLint valid = GL_FALSE;
+		glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_COMPRESSED, &valid);
+		if (valid) {
+			return count;
+		}
 	}
 	return 0;
 }
@@ -451,18 +461,16 @@ unsigned createBC3(GLuint txId, unsigned min0, unsigned max0, unsigned min1, uns
  * \param[in] max1 maximum second endpoint (inclusive)
  * \return the number of 4x4 blocks
  */
-unsigned createBC4Red(GLuint txId, unsigned min0, unsigned max0, unsigned min1, unsigned max1) {
+unsigned createBC4(GLuint txId, unsigned min0, unsigned max0, unsigned min1, unsigned max1) {
 	assert(txId);
 	assert(min0 < 256 && max0 < 256 && min0 <= max0);
 	assert(min1 < 256 && max1 < 256 && min1 <= max1);
 	GLsizei gridW = (max1 + 1) - min1;
 	GLsizei gridH = (max0 + 1) - min0;
 	GLsizei count = gridW * gridH;
-	GLsizei maxWH = 256 * 256;
-	assert(count <= maxWH);
-	if (count > 0 && count <= maxWH) {
-		BCBlock* const data = new BCBlock[count];
-		BCBlock* next = data;
+	if (count > 0 && count <= 256 * 256) {
+		BCBlock* const blocks = new BCBlock[count];
+		BCBlock* next = blocks;
 		for(unsigned gridY = min0; gridY <= max0; gridY++) {
 			for(unsigned gridX = min1; gridX <= max1; gridX++) {
 				fillBC4Block(next++, gridY, gridX);
@@ -471,10 +479,15 @@ unsigned createBC4Red(GLuint txId, unsigned min0, unsigned max0, unsigned min1, 
 		glBindTexture(GL_TEXTURE_2D, txId);
 		glCompressedTexImage2D(GL_TEXTURE_2D, 0, GL_COMPRESSED_RED_RGTC1,
 			gridW * 4, gridH * 4, 0,
-				count * sizeof(BCBlock), data);
+				count * sizeof(BCBlock), blocks);
 		filterClampBoilerplate();
 		glFlush();
-		return count;
+		delete[] blocks;
+		GLint valid = GL_FALSE;
+		glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_COMPRESSED, &valid);
+		if (valid) {
+			return count;
+		}
 	}
 	return 0;
 }
@@ -506,8 +519,62 @@ void create4x4BC3Red(GLuint txId) {
  * \param[in] txId pre-generated texture ID to use
  */
 void create4x4BC4Red(GLuint txId) {
-	unsigned count = createBC4Red(txId, 255, 255, 0, 0);
+	unsigned count = createBC4(txId, 255, 255, 0, 0);
 	assert(count);
+}
+
+//*****************************************************************************/
+
+/**
+ * Creates a test texture with a known pattern sweeping the range of possible
+ * values for the storage type, which should result in exact float values that
+ * can be verified. Any discrepancy between the known and expected values means
+ * the extraction method cannot be used.
+ *
+ * \note The intended use is for 8-bit 256x256 and 16-bit 1024x1024, which
+ * covers BC1, BC3 and BC4's ranges.
+ *
+ * \tparam T data type, tested with \c uint8_t and \c uint16_t
+ * \param[in] txId pre-generated texture ID to use
+ * \param[in] minX minimum value on the X-axis
+ * \param[in] maxX maximum value on the X-axis (inclusive)
+ * \param[in] minY minimum value on the Y-axis
+ * \param[in] maxY maximum value on the Y-axis (inclusive)
+ * \param[in] type \c glTexImage2D data type, tested with \c GL_UNSIGNED_BYTE and \c GL_UNSIGNED_SHORT
+ * \return total number of pixels
+ */
+template<typename T = uint8_t>
+unsigned createTestSweepRed(GLuint txId, unsigned minX, unsigned maxX, unsigned minY, unsigned maxY, GLenum type) {
+	assert(txId);
+	assert(minX < 1024 && maxX < 1024 && minX <= maxX);
+	assert(minY < 1024 && maxY < 1024 && minY <= maxY);
+	GLsizei gridW = (maxX + 1) - minX;
+	GLsizei gridH = (maxY + 1) - minY;
+	GLsizei count = gridW * gridH;
+	if (count > 0 && count <= 1024 * 1024) {
+		T* const pixels = new T[count];
+		T* next = pixels;
+		for(unsigned valY = minY; valY <= maxY; valY++) {
+			for(unsigned valX = minX; valX <= maxX; valX++) {
+				if (type == GL_UNSIGNED_BYTE) {
+					*next++ = static_cast<T>(valX + ((valX * valY) >> ((valY & 1) ? 1 : 2)));
+				} else {
+					*next++ = static_cast<T>(valX + ((valX * valY) << ((valY & 1) ? 4 : 5)));
+				}
+			}
+		}
+		glBindTexture(GL_TEXTURE_2D, txId);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, gridW, gridH, 0, GL_RED, type, pixels);
+		filterClampBoilerplate();
+		glFlush();
+		delete[] pixels;
+		GLint valid = 0;
+		glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_RED_SIZE, &valid);
+		if (valid) {
+			return count;
+		}
+	}
+	return 0;
 }
 
 void bc3RedTest() {
@@ -773,6 +840,8 @@ void initFramebufferTest() {
 	GLuint txName = 0;
 	glGenTextures(1, &txName);
 	create4x4BC1Red(txName);
+	//createTestSweepRed<uint8_t>(txName, 0, 255, 0, 255, GL_UNSIGNED_BYTE);
+	//createTestSweepRed<uint16_t>(txName, 0, 1023, 0, 1023, GL_UNSIGNED_SHORT);
 
 	float const verts[]= {
 		 1.0f,  1.0f, 1.0f, 1.0f, // TR
