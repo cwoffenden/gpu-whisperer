@@ -329,6 +329,17 @@ void fillBC4Block(BCBlock* block, unsigned val0, unsigned val1) {
 }
 
 /**
+ * Tests whether the currently bound texture is hardware compressed.
+ *
+ * \return \c true if the texture's first mipmap level is compressed
+ */
+bool currentBoundIsCompressed() {
+	GLint valid = GL_FALSE;
+	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_COMPRESSED, &valid);
+	return valid == GL_TRUE;
+}
+
+/**
  * Creates a BC1 texture grid with endpoints varying between the specified
  * minimum and maximum, on the selected \a channel only. Variance in the first
  * endpoint runs down the Y-axis (being stable in the X).
@@ -372,9 +383,7 @@ unsigned createBC1(GLuint txId, unsigned min0, unsigned max0, unsigned min1, uns
 		filterClampBoilerplate();
 		glFlush();
 		delete[] blocks;
-		GLint valid = GL_FALSE;
-		glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_COMPRESSED, &valid);
-		if (valid) {
+		if (currentBoundIsCompressed()) {
 			return count;
 		}
 	}
@@ -440,9 +449,7 @@ unsigned createBC3(GLuint txId, unsigned min0, unsigned max0, unsigned min1, uns
 		filterClampBoilerplate();
 		glFlush();
 		delete[] blocks;
-		GLint valid = GL_FALSE;
-		glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_COMPRESSED, &valid);
-		if (valid) {
+		if (currentBoundIsCompressed()) {
 			return count;
 		}
 	}
@@ -483,9 +490,7 @@ unsigned createBC4(GLuint txId, unsigned min0, unsigned max0, unsigned min1, uns
 		filterClampBoilerplate();
 		glFlush();
 		delete[] blocks;
-		GLint valid = GL_FALSE;
-		glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_COMPRESSED, &valid);
-		if (valid) {
+		if (currentBoundIsCompressed()) {
 			return count;
 		}
 	}
@@ -526,6 +531,72 @@ void create4x4BC4Red(GLuint txId) {
 //*****************************************************************************/
 
 /**
+ * Matches the GL type for a given data type, e.g. \c GL_BYTE for \c int8_t
+ * (with only support for 8- and 16-bit integer types).
+ *
+ * \tparam T fixed-width integer type
+ * \return matching GL data type
+ */
+template<typename T>
+GLenum getDataType() {
+	switch (std::numeric_limits<T>::max()) {
+	case INT8_MAX:
+		return GL_BYTE;
+	case UINT8_MAX:
+		return GL_UNSIGNED_BYTE;
+	case INT16_MAX:
+		return GL_SHORT;
+	case UINT16_MAX:
+		return GL_UNSIGNED_SHORT;
+	default:
+		return GL_NONE;
+	}
+}
+
+/*
+ * \note Currently supporting only modern GL-style normalisation.
+ * \tparam T fixed-width integer type
+ */
+template<typename T>
+float normalize(T val) {
+	switch (std::numeric_limits<T>::max()) {
+	case INT8_MAX:
+		return std::max(val / float(INT8_MAX), -1.0f);
+	case UINT8_MAX:
+		return val / float(UINT8_MAX);
+	case INT16_MAX:
+		return std::max(val / float(INT16_MAX), -1.0f);
+	case UINT16_MAX:
+		return val / float(UINT16_MAX);
+	default:
+		return 0.0f;
+	}
+}
+
+/**
+ * \def SWEEP_BC3
+ * Test texture size large enough to extract all BC1 and BC3 variations.
+ */
+#define SWEEP_BC1 256
+
+/**
+ * \def SWEEP_BC3
+ * Test texture size large enough to extract all BC4 variations.
+ */
+#define SWEEP_BC4 1024
+
+/**
+ * Tests whether the currently bound texture has valid red component data.
+ *
+ * \return \c true if the texture's first mipmap level has a red component
+ */
+bool currentBoundHasRedData() {
+	GLint redSize = 0;
+	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_RED_SIZE, &redSize);
+	return redSize > 0;
+}
+
+/*
  * Creates a test texture with a known pattern sweeping the range of possible
  * values for the storage type, which should result in exact float values that
  * can be verified. Any discrepancy between the known and expected values means
@@ -535,46 +606,36 @@ void create4x4BC4Red(GLuint txId) {
  * covers BC1, BC3 and BC4's ranges.
  *
  * \tparam T data type, tested with \c uint8_t and \c uint16_t
- * \param[in] txId pre-generated texture ID to use
- * \param[in] minX minimum value on the X-axis
- * \param[in] maxX maximum value on the X-axis (inclusive)
- * \param[in] minY minimum value on the Y-axis
- * \param[in] maxY maximum value on the Y-axis (inclusive)
- * \param[in] type \c glTexImage2D data type, tested with \c GL_UNSIGNED_BYTE and \c GL_UNSIGNED_SHORT
- * \return total number of pixels
+ * \param[in] size texture dimension to use (e.g \c 256 for BC3)
+ * \return true if texture creation was successful
  */
 template<typename T = uint8_t>
-unsigned createTestSweepRed(GLuint txId, unsigned minX, unsigned maxX, unsigned minY, unsigned maxY, GLenum type) {
-	assert(txId);
-	assert(minX < 1024 && maxX < 1024 && minX <= maxX);
-	assert(minY < 1024 && maxY < 1024 && minY <= maxY);
-	GLsizei gridW = (maxX + 1) - minX;
-	GLsizei gridH = (maxY + 1) - minY;
-	GLsizei count = gridW * gridH;
-	if (count > 0 && count <= 1024 * 1024) {
-		T* const pixels = new T[count];
-		T* next = pixels;
-		for(unsigned valY = minY; valY <= maxY; valY++) {
-			for(unsigned valX = minX; valX <= maxX; valX++) {
-				if (type == GL_UNSIGNED_BYTE) {
-					*next++ = static_cast<T>(valX + ((valX * valY) >> ((valY & 1) ? 1 : 2)));
-				} else {
-					*next++ = static_cast<T>(valX + ((valX * valY) << ((valY & 1) ? 4 : 5)));
-				}
+bool createTestSweepRed(GLuint txId, unsigned const size) {
+	assert(txId && size);
+	T* const pixels = new T[size * size];
+	unsigned idxVal = 0;
+	for (unsigned y = 0; y < size; y++) {
+		for (unsigned x = 0; x < size; x++) {
+			T val;
+			if ((y & 1)) {
+				val = static_cast<T>(((idxVal & 1) ? ~idxVal :  idxVal) >> 1);
+			} else {
+				val = static_cast<T>(((idxVal & 1) ?  idxVal : ~idxVal) >> 1);
 			}
-		}
-		glBindTexture(GL_TEXTURE_2D, txId);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, gridW, gridH, 0, GL_RED, type, pixels);
-		filterClampBoilerplate();
-		glFlush();
-		delete[] pixels;
-		GLint valid = 0;
-		glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_RED_SIZE, &valid);
-		if (valid) {
-			return count;
+			pixels[idxVal++] = val;
 		}
 	}
-	return 0;
+	glBindTexture(GL_TEXTURE_2D, txId);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, size, size, 0, GL_RED, getDataType<T>(), pixels);
+	filterClampBoilerplate();
+	glFlush();
+	delete[] pixels;
+	return currentBoundHasRedData();
+}
+
+template<typename T = uint8_t>
+void verifyTestSweepRed(RGBAf32* const /*pixels*/, unsigned const size) {
+	(void) size;
 }
 
 void bc3RedTest() {
@@ -839,9 +900,8 @@ void initFramebufferTest() {
 
 	GLuint txName = 0;
 	glGenTextures(1, &txName);
-	create4x4BC1Red(txName);
-	//createTestSweepRed<uint8_t>(txName, 0, 255, 0, 255, GL_UNSIGNED_BYTE);
-	//createTestSweepRed<uint16_t>(txName, 0, 1023, 0, 1023, GL_UNSIGNED_SHORT);
+	//create4x4BC1Red(txName);
+	createTestSweepRed<uint8_t>(txName, SWEEP_BC1);
 
 	float const verts[]= {
 		 1.0f,  1.0f, 1.0f, 1.0f, // TR
