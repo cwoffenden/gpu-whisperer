@@ -524,6 +524,7 @@ unsigned createBC4(GLuint txId, unsigned min0, unsigned max0, unsigned min1, uns
 	return 0;
 }
 
+#if 0
 /**
  * Creates a 4x4 compressed BC3 texture with known values for testing
  * (purposefully choosing the \e mode with a single interpolated colour).
@@ -554,6 +555,7 @@ void create4x4BC4Red(GLuint txId) {
 	unsigned count = createBC4(txId, 255, 255, 0, 0);
 	assert(count);
 }
+#endif
 
 //*****************************************************************************/
 
@@ -684,6 +686,7 @@ bool verifyTestSweepRed(RGBAf32* const rgba, unsigned const size) {
 	return true;
 }
 
+#if 0
 void bc3RedTest() {
 	GLuint txName = 0;
 	glGenTextures(1, &txName);
@@ -727,6 +730,7 @@ void bc4Red8ValTest() {
 	glBindTexture(GL_TEXTURE_2D, 0);
 	glDeleteTextures(1, &txName);
 }
+#endif
 
 /**
  * Helper to compile a shader from source.
@@ -843,25 +847,30 @@ enum VertexID {
 	VERT_TEX1_ID = 2, /**< Vertex texture channel channel 1. */
 };
 
+/**
+ * GLSL 1.20 compatible vertex shader, designed only to draw a fullscreen
+ * textured quad.
+ */
 GLchar const vertShaderTexture120[] =
 	"#version 120\n"
-	"attribute vec2 aPosn;"
-	"attribute vec2 aTex0;"
-	"varying vec2 vPosn;"
-	"varying vec2 vTex0;"
+	"attribute vec2 aPosn;\n"
+	"attribute vec2 aTex0;\n"
+	"varying vec2 vTex0;\n"
 	"void main() {\n"
-	"	vPosn = aPosn;"
-	"	vTex0 = aTex0;"
+	"	vTex0 = aTex0;\n"
 	"	gl_Position = vec4(aPosn.x, aPosn.y, 0.0, 1.0);\n"
 	"}\n";
 
+/**
+ * GLSL 1.20 compatible fragment shader, designed only to draw a fullscreen
+ * textured quad.
+ */
 GLchar const fragShaderTexture120[] =
 	"#version 120\n"
-	"uniform sampler2D srcTx;"
-	"varying vec2 vPosn;"
-	"varying vec2 vTex0;"
+	"uniform sampler2D srcTx;\n"
+	"varying vec2 vTex0;\n"
 	"void main() {\n"
-	"	vec4 tex0rgb = texture2D(srcTx, vTex0);"
+	"	vec4 tex0rgb = texture2D(srcTx, vTex0);\n"
 	"	gl_FragColor = tex0rgb;\n"
 	"}\n";
 
@@ -869,15 +878,23 @@ GLuint progId = 0; /**< Program ID. */
 GLuint vertId = 0; /**< Vertex shader ID. */
 GLuint fragId = 0; /**< Fragment shader ID. */
 
-bool createVertFragShaders(const GLchar* vertText, const GLchar* fragText) {
+/**
+ * Helper to create vertex and fragment shaders. After calling the current
+ * program is set to the compiled result.
+ *
+ * \param[in] vertSrc vertex shader source
+ * \param[in] fragSrc fragment shader source
+ * \return \c true of compilation and linking was successful
+ */
+bool createVertFragShaders(const GLchar* vertSrc, const GLchar* fragSrc) {
 	assert(progId == 0);
 	progId = glCreateProgram();
 	if (progId) {
 		glBindAttribLocation(progId, VERT_POSN_ID, "aPosn");
 		glBindAttribLocation(progId, VERT_TEX0_ID, "aTex0");
 		glBindAttribLocation(progId, VERT_TEX1_ID, "aTex1");
-		vertId = compileShaderText(GL_VERTEX_SHADER,   vertText);
-		fragId = compileShaderText(GL_FRAGMENT_SHADER, fragText);
+		vertId = compileShaderText(GL_VERTEX_SHADER,   vertSrc);
+		fragId = compileShaderText(GL_FRAGMENT_SHADER, fragSrc);
 		if (vertId && fragId) {
 			glAttachShader(progId, vertId);
 			glAttachShader(progId, fragId);
@@ -889,6 +906,9 @@ bool createVertFragShaders(const GLchar* vertText, const GLchar* fragText) {
 	return false;
 }
 
+/**
+ * Cleanup for \c #createVertFragShaders() (program and shaders).
+ */
 void deleteVertFragShaders() {
 	glDeleteProgram(progId);
 	progId = 0;
@@ -898,48 +918,52 @@ void deleteVertFragShaders() {
 	fragId = 0;
 }
 
-GLuint fbTxId = 0; /**< Float texture ID backing \c fbufId (RGBA). */
+GLuint fbTxId = 0; /**< Texture ID backing \c fbufId (RGBA). */
 GLuint fbufId = 0; /**< Framebuffer ID. */
 
 /**
- * Creates a framebuffer backed by a 32-bit \c float texture. After calling,
+ * Creates a framebuffer backed by the specified texture type. After calling,
  * neither the texture nor the framebuffer remain bound.
  *
  * \param[in] bufW framebuffer width
  * \param[in] bufH framebuffer height
+ * \param[in] format sized texture format (e.g. \c GL_RGBA32F for 32-bit floats)
+ * \param[in] type texture data type (e.g. \c GL_FLOAT matching the \c GL_RGBA32F \a format for 32-bit floats)
+ * \return \c true if a valid framebuffer was created
  */
-void createFloatFramebuffer(unsigned bufW, unsigned bufH) {
+bool createFramebuffer(unsigned bufW, unsigned bufH, GLint format = GL_RGBA32F, GLenum type = GL_FLOAT) {
 	assert(fbTxId == 0);
+	bool valid = false;
 	glGenTextures(1, &fbTxId);
 	glBindTexture(GL_TEXTURE_2D, fbTxId);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, bufW, bufH, 0, GL_RGBA, GL_FLOAT, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, format, bufW, bufH, 0, GL_RGBA, type, NULL);
 	filterClampBoilerplate();
+	if (currentBoundHasData()) {
+		glGenFramebuffers(1, &fbufId);
+		glBindFramebuffer(GL_FRAMEBUFFER, fbufId);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fbTxId, 0);
+		valid = glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	}
 	glBindTexture(GL_TEXTURE_2D, 0);
-	assert(glGetError() == 0);
-
-	glGenFramebuffers(1, &fbufId);
-	glBindFramebuffer(GL_FRAMEBUFFER, fbufId);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fbTxId, 0);
-	assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	assert(glGetError() == 0);
+	return valid;
 }
 
 /**
- * Cleanup for \c #createFloatFramebuffer() (framebuffer and backing texture).
+ * Cleanup for \c #createFramebuffer() (framebuffer and backing texture).
  */
-void deleteFloatFramebuffer() {
+void deleteFramebuffer() {
 	glDeleteFramebuffers(1, &fbufId);
 	fbufId = 0;
 	glDeleteTextures(1, &fbTxId);
 	fbTxId = 0;
 }
 
-GLuint quadId = 0;
+GLuint quadId = 0; /** Full screen textured quad.  */
 
 void initFramebufferTest() {
 #ifndef DEBUG_DRAW_QUAD
-	createFloatFramebuffer(SWEEP_BC1, SWEEP_BC1);
+	createFramebuffer(SWEEP_BC1, SWEEP_BC1);
 #endif
 
 	createVertFragShaders(vertShaderTexture120, fragShaderTexture120);
