@@ -762,38 +762,7 @@ void bc4Red8ValTest() {
 }
 #endif
 
-/**
- * Helper to compile a shader from source.
- *
- * \param[in] type shader type
- * \param[in] text shader source
- * \return the shader ID (or zero if compilation failed)
- */
-static GLuint compileShaderText(GLenum const type, const GLchar* const text) {
-	if (GLuint shader = glCreateShader(type)) {
-		const char* texts[1] = {text};
-		glShaderSource (shader, 1, texts, NULL);
-		glCompileShader(shader);
-		GLint compiled;
-		glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
-		if (compiled == GL_TRUE) {
-			return shader;
-		} else {
-			GLint logLen;
-			glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logLen);
-			if (logLen > 1) {
-				GLchar* logStr = new GLchar[logLen];
-				glGetShaderInfoLog(shader, logLen, NULL, logStr);
-				printf("Shader compile error: %s\n", logStr);
-				delete[] logStr;
-			}
-			glDeleteShader(shader);
-		}
-	}
-	return 0;
-}
-
-#ifndef __APPLE__
+#ifdef GL_VERSION_4_3
 GLchar const computeShaderTexture[] =
 	"#version 430 core\n"
 	"layout(binding = 0) uniform sampler2D srcTx;\n"
@@ -869,6 +838,37 @@ void computeTest() {
 //**************************** Framebuffer Version ****************************/
 
 /**
+ * Helper to compile a shader from source.
+ *
+ * \param[in] type shader type
+ * \param[in] text shader source
+ * \return the shader ID (or zero if compilation failed)
+ */
+static GLuint compileShaderText(GLenum const type, const GLchar* const text) {
+	if (GLuint shader = glCreateShader(type)) {
+		const char* texts[1] = {text};
+		glShaderSource (shader, 1, texts, NULL);
+		glCompileShader(shader);
+		GLint compiled;
+		glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
+		if (compiled == GL_TRUE) {
+			return shader;
+		} else {
+			GLint logLen;
+			glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logLen);
+			if (logLen > 1) {
+				GLchar* logStr = new GLchar[logLen];
+				glGetShaderInfoLog(shader, logLen, NULL, logStr);
+				printf("Shader compile error: %s\n", logStr);
+				delete[] logStr;
+			}
+			glDeleteShader(shader);
+		}
+	}
+	return 0;
+}
+
+/**
  * Vertex attribute IDs.
  */
 enum VertexID {
@@ -935,6 +935,9 @@ GLuint progId = 0; /**< Program ID. */
 GLuint vertId = 0; /**< Vertex shader ID. */
 GLuint fragId = 0; /**< Fragment shader ID. */
 
+GLuint fbTxId = 0; /**< Texture ID backing \c fbufId (RGBA). */
+GLuint fbufId = 0; /**< Framebuffer ID. */
+
 /**
  * Helper to create vertex and fragment shaders. After calling the current
  * program is set to the compiled result.
@@ -982,12 +985,9 @@ void deleteVertFragShaders() {
 	fragId = 0;
 }
 
-GLuint fbTxId = 0; /**< Texture ID backing \c fbufId (RGBA). */
-GLuint fbufId = 0; /**< Framebuffer ID. */
-
-/**
+/*
  * Creates a framebuffer backed by the specified texture type. After calling,
- * neither the texture nor the framebuffer remain bound.
+ * any valid framebuffer remains bound.
  *
  * \param[in] bufW framebuffer width
  * \param[in] bufH framebuffer height
@@ -997,19 +997,21 @@ GLuint fbufId = 0; /**< Framebuffer ID. */
  */
 bool createFramebuffer(unsigned bufW, unsigned bufH, GLint format = GL_RGBA32F, GLenum type = GL_FLOAT) {
 	assert(fbTxId == 0 && fbufId == 0);
-	bool valid = false;
 	glGenTextures(1, &fbTxId);
 	glBindTexture(GL_TEXTURE_2D, fbTxId);
 	glTexImage2D(GL_TEXTURE_2D, 0, format, bufW, bufH, 0, GL_RGBA, type, NULL);
 	filterClampBoilerplate();
-	if (currentBoundHasData()) {
+	bool valid = currentBoundHasData();
+	glBindTexture(GL_TEXTURE_2D, 0);
+	if (valid) {
 		glGenFramebuffers(1, &fbufId);
 		glBindFramebuffer(GL_FRAMEBUFFER, fbufId);
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fbTxId, 0);
-		valid = glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		valid = (glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
+		if (!valid) {
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		}
 	}
-	glBindTexture(GL_TEXTURE_2D, 0);
 	return valid;
 }
 
@@ -1017,6 +1019,7 @@ bool createFramebuffer(unsigned bufW, unsigned bufH, GLint format = GL_RGBA32F, 
  * Cleanup for \c #createFramebuffer() (framebuffer and backing texture).
  */
 void deleteFramebuffer() {
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glDeleteFramebuffers(1, &fbufId);
 	fbufId = 0;
 	glDeleteTextures(1, &fbTxId);
@@ -1026,7 +1029,7 @@ void deleteFramebuffer() {
 GLuint vaoId = 0; /**< VAO fullscreen textured quad.  */
 GLuint vboId = 0; /**< VBO for \c vObjId quad. */
 
-/*
+/**
  * Creates a fullscreen textured quad. After calling the VAO \c vaoId and/or its
  * VBO \c vboId remain bound (to ease drawing, since this is the only geometry).
  */
@@ -1071,7 +1074,6 @@ void deleteTexturedQuad() {
 }
 
 void initFramebufferTest() {
-
 #ifndef DEBUG_DRAW_QUAD
 	createFramebuffer(SWEEP_BC1, SWEEP_BC1);
 #endif
@@ -1116,15 +1118,7 @@ void drawFramebufferTest() {
 #endif
 }
 
-void APIENTRY debugCallback(GLenum /*source*/, GLenum /*type*/, GLuint /*id*/, GLenum /*severity*/, GLsizei /*length*/, const GLchar* message, const void* /*userParam*/) {
-	printf("GL debug: %s\n", message);
-}
-
 void setup() {
-#ifndef __APPLE__
-	glDebugMessageCallback(debugCallback, NULL);
-	glEnable(GL_DEBUG_OUTPUT);
-#endif
 	/*
 	 * Note so far: these pure 'val' tests are wrong, compared with the control
 	 * values, but the float framebuffer ones are correct. They're only slightly
@@ -1162,13 +1156,27 @@ void draw(GLFWwindow* window) {
 	drawFramebufferTest();
 }
 
-int main(int /*argc*/, char* /*argv*/[]) {
+#ifdef GL_VERSION_4_3
+void APIENTRY debugCallback(GLenum /*source*/, GLenum /*type*/, GLuint /*id*/, GLenum /*severity*/, GLsizei /*length*/, const GLchar* message, const void* /*userParam*/) {
+	printf("GL debug: %s\n", message);
+}
+#endif
+
+/**
+ * Helper to create a GLFW window, and therefore a GL context, with the highest
+ * GL version possible (setting the global \c glVers in the process). If no
+ * context can be created then the application exits.
+ *
+ * \param[in] show \c true if the window should be shown (default to hiding)
+ * \return either a valid window or \c null
+ */
+GLFWwindow* createGlfwContext(bool show = false) {
 	if (!glfwInit()) {
 		exit(EXIT_FAILURE);
 	}
-#ifndef DEBUG_DRAW_QUAD
-	glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
-#endif
+	if (!show) {
+		glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+	}
 	/*
 	 * We try to create a compute shader compatible context, with retries for
 	 * various other older GLs. Macs are unhappy with GLFW_OPENGL_PROFILE and
@@ -1192,12 +1200,86 @@ int main(int /*argc*/, char* /*argv*/[]) {
 			glVers = VERSION_2_1;
 			window = glfwCreateWindow(512, 512, "Test", NULL, NULL);
 			if (!window) {
+				puts("Unable to create a GL context");
 				exit(EXIT_FAILURE);
 			}
 		}
 	}
 	glfwMakeContextCurrent(window);
+#ifdef GL_VERSION_4_3
+	glDebugMessageCallback(debugCallback, NULL);
+	glEnable(GL_DEBUG_OUTPUT);
+#endif
+	return window;
+}
 
+template<typename T = uint8_t>
+void runSweepTestRed(GLuint txId, RGBAf32* const rgba, unsigned const size) {
+	if (createTestSweepRed<uint8_t>(txId, size)) {
+		glViewport(0, 0, size, size);
+		glClear(GL_COLOR_BUFFER_BIT);
+		/*
+		 * The quad's VAO, if used, or its VBO remain bound.
+		 */
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+		glFinish();
+		assert(glGetError() == 0);
+
+		glBindTexture(GL_TEXTURE_2D, fbTxId);
+		glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, rgba);
+		if (verifyTestSweepRed<uint8_t>(rgba, size)) {
+			puts("Success!");
+		}
+	}
+}
+
+void runValidateFramebuffer(GLFWwindow* /*window*/) {
+	// Common shaders and fullscreen quad
+	if (glVers > VERSION_2_1) {
+		createVertFragShaders(vertShaderTexture150, fragShaderTexture150);
+	} else {
+		createVertFragShaders(vertShaderTexture120, fragShaderTexture120);
+	}
+	createTexturedQuad();
+	// Buffer large enough for all tests
+	RGBAf32* const rgba = new RGBAf32[SWEEP_BC4 * SWEEP_BC4];
+
+	if (createFramebuffer(SWEEP_BC1, SWEEP_BC1)) {
+		GLuint sweepTx = 0;
+		glGenTextures(1, &sweepTx);
+		runSweepTestRed<uint8_t>(sweepTx, rgba, SWEEP_BC1);
+		runSweepTestRed<uint16_t>(sweepTx, rgba, SWEEP_BC1);
+	}
+	delete[] rgba;
+}
+
+int main(int argc, char* argv[]) {
+	enum Mode {
+		MODE_INFO,
+		MODE_VALIDATE,
+		MODE_GENERATE,
+	} mode = MODE_INFO;
+	for (int n = 1; n < argc; n++) {
+		switch (argv[n][0]) {
+		case 'v':
+			mode = MODE_VALIDATE;
+			break;
+		case 'g':
+			mode = MODE_GENERATE;
+			break;
+		default:
+			mode = MODE_INFO;
+		}
+	}
+#ifdef DEBUG_DRAW_QUAD
+	GLFWwindow* window = createGlfwContext(true);
+#else
+	GLFWwindow* window = createGlfwContext();
+#endif
+	if (mode == MODE_VALIDATE) {
+		runValidateFramebuffer(window);
+	}
+	/*
 	setup();
 
 #ifdef DEBUG_DRAW_QUAD
@@ -1207,7 +1289,7 @@ int main(int /*argc*/, char* /*argv*/[]) {
 		glfwPollEvents();
 	}
 #endif
-
+	 */
 	glfwDestroyWindow(window);
 	glfwTerminate();
 	return EXIT_SUCCESS;
