@@ -11,14 +11,16 @@
 //***************************** Compiler Helpers ******************************/
 
 /**
- * \def __has_builtin
- * Dummy \c __has_builtin implementation for when not using Clang (in which case
- * all requested builtins are reported as unimplemented).
+ * \def __has_feature
+ * Dummy \c __has_feature implementation for when not using Clang (in which case
+ * all requested features are reported as unimplemented).
  *
- * \param builtin compiler builtin to query
+ * \param feature compiler feature to query
  */
-#ifndef __has_builtin
-#define __has_builtin(builtin) 0
+#ifndef __has_feature
+#ifndef __SNC__
+#define __has_feature(feature) 0
+#endif
 #endif
 
 /**
