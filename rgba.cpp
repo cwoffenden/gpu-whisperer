@@ -43,10 +43,10 @@ void convert(const RGBAu08* src, RGBAf32* dst, unsigned const len) {
 
 void convert(const RGBAf32* src, RGBAu08* dst, unsigned const len) {
 	for (unsigned n = len; n > 0; n--) {
-		dst->r = static_cast<uint8_t>(std::round(clamp(src->r * RGBA_MAX_08, 0.0f, RGBA_MAX_08)));
-		dst->g = static_cast<uint8_t>(std::round(clamp(src->g * RGBA_MAX_08, 0.0f, RGBA_MAX_08)));
-		dst->b = static_cast<uint8_t>(std::round(clamp(src->b * RGBA_MAX_08, 0.0f, RGBA_MAX_08)));
-		dst->a = static_cast<uint8_t>(std::round(clamp(src->a * RGBA_MAX_08, 0.0f, RGBA_MAX_08)));
+		dst->r = static_cast<uint8_t>(roundf(clamp(src->r * RGBA_MAX_08, 0.0f, RGBA_MAX_08)));
+		dst->g = static_cast<uint8_t>(roundf(clamp(src->g * RGBA_MAX_08, 0.0f, RGBA_MAX_08)));
+		dst->b = static_cast<uint8_t>(roundf(clamp(src->b * RGBA_MAX_08, 0.0f, RGBA_MAX_08)));
+		dst->a = static_cast<uint8_t>(roundf(clamp(src->a * RGBA_MAX_08, 0.0f, RGBA_MAX_08)));
 		src++;
 		dst++;
 	}
@@ -54,10 +54,10 @@ void convert(const RGBAf32* src, RGBAu08* dst, unsigned const len) {
 
 void convert(const RGBAf32* src, RGBAu16* dst, unsigned const len) {
 	for (unsigned n = len; n > 0; n--) {
-		dst->r = static_cast<uint16_t>(std::round(clamp(src->r * RGBA_MAX_16, 0.0f, RGBA_MAX_16)));
-		dst->g = static_cast<uint16_t>(std::round(clamp(src->g * RGBA_MAX_16, 0.0f, RGBA_MAX_16)));
-		dst->b = static_cast<uint16_t>(std::round(clamp(src->b * RGBA_MAX_16, 0.0f, RGBA_MAX_16)));
-		dst->a = static_cast<uint16_t>(std::round(clamp(src->a * RGBA_MAX_16, 0.0f, RGBA_MAX_16)));
+		dst->r = static_cast<uint16_t>(roundf(clamp(src->r * RGBA_MAX_16, 0.0f, RGBA_MAX_16)));
+		dst->g = static_cast<uint16_t>(roundf(clamp(src->g * RGBA_MAX_16, 0.0f, RGBA_MAX_16)));
+		dst->b = static_cast<uint16_t>(roundf(clamp(src->b * RGBA_MAX_16, 0.0f, RGBA_MAX_16)));
+		dst->a = static_cast<uint16_t>(roundf(clamp(src->a * RGBA_MAX_16, 0.0f, RGBA_MAX_16)));
 		src++;
 		dst++;
 	}

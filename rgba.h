@@ -4,7 +4,9 @@
  */
 #pragma once
 
-#include <cstdint>
+#define __STDC_LIMIT_MACROS
+#include <stdint.h>
+#include <cstddef>
 #include <cstring>
 #include <algorithm>
 
@@ -222,7 +224,7 @@ static inline T rgbaSquare(T val) {
  * \return an accumulated error metric calculated for all the pixels
  * \tparam T numeric type for the result (e.g. \c double)
  */
-template<typename T = double>
+template<typename T>
 T rgbaCalcErrorLinear(const RGBAf32* _Nonnull src, const RGBAf32* _Nonnull dst, unsigned len) {
 	T err = T(0);
 	for (; len > 0; len--) {
@@ -250,7 +252,7 @@ T rgbaCalcErrorLinear(const RGBAf32* _Nonnull src, const RGBAf32* _Nonnull dst, 
  * \tparam T numeric type for the result (e.g. \c double)
  * \tparam I channel index (e.g. \c 0 for red, \c 1 for green)
  */
-template<typename T = double, ChannelIndex I = 0>
+template<typename T, ChannelIndex I>
 T rgbaCalcErrorLinearChannel(const RGBAf32* _Nonnull src, const RGBAf32* _Nonnull dst, unsigned len) {
 	T err = T(0);
 	for (; len > 0; len--) {
