@@ -1,6 +1,6 @@
-# BC Xtractor
+# GPU Whisperer
 
-Tool to extract precise compressed texture data from hardware. 
+Tool to gently persuade GPUs to give up their inner workings of how compressed texture data is treated. 
 
 It needs [GLFW](//www.glfw.org/) to build. On Mac, either install using [Homebrew](//formulae.brew.sh/formula/glfw) or build from source:
 ```
