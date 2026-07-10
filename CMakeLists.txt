@@ -43,14 +43,10 @@ if (MSVC)
 	)
 	set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:DEBUG>:DebugDLL>")
 else()
-	if (${CMAKE_SYSTEM_PROCESSOR} MATCHES "ppc64|powerpc")
-		# We're on one of my own machines here (no one has Power) so apply a
-		# tune (And also implicitly add atomics, needed on older GCC on Power)
-		add_compile_options(-mtune=native -latomic)
-	endif()
+	# TODO: look at which compilers will take -fno-signed-zeros (older GCC won't)
 	add_compile_options(
 		-Wall -Wextra -Werror
-		-fno-math-errno -fno-signed-zeros
+		-fno-math-errno
 		$<$<CONFIG:DEBUG>:-O0>
 		$<$<CONFIG:DEBUG>:-g3>
 		$<$<CONFIG:DEBUG>:-Wno-unused>
@@ -62,11 +58,20 @@ else()
 	add_compile_definitions(
 		$<$<CONFIG:DEBUG>:_DEBUG=1>
 	)
-	if (EMSCRIPTEN)
-		# And for ease-of-use we build Wasm all in one file (which makes it easier to test)
-		add_compile_options(-msimd128)
-		add_link_options(-sSINGLE_FILE=1)
-		set(CMAKE_EXECUTABLE_SUFFIX ".html")
+	if (${CMAKE_SYSTEM_PROCESSOR} MATCHES "ppc64|powerpc")
+		# We're on one of my own machines here (no one has PPC) so: add a tune
+		# if the compiler accepts 'native', and the CPU for Macs (trying to
+		# catch a G5 native build)
+		if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+			if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 4.9)
+				add_compile_options(-mtune=native)
+				if (APPLE)
+					if ("${CMAKE_SIZEOF_VOID_P}" STREQUAL "4")
+						add_compile_options(-mcpu=native)
+					endif()
+				endif()
+			endif()
+		endif()
 	endif()
 endif()
 
@@ -83,9 +88,18 @@ source_group(TREE "${PROJECT_SOURCE_DIR}" PREFIX "Sources" FILES ${SRCS})
 
 add_executable(${CMAKE_PROJECT_NAME} ${INCS} ${SRCS})
 
-set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY CXX_STANDARD 11)
+set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY CXX_STANDARD 98)
+
+# Note to future self: older Mac GCCs don't include "/usr/local/include" by
+# default, and GLFW's CMake config files don't add the library (at least for
+# Makefile builds) so it will fail to find to find the header. Fix this by
+# adding a CPATH the shell's profile.
 
 find_package(glfw3 REQUIRED)
-target_link_libraries(${CMAKE_PROJECT_NAME} glfw)
+target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC glfw3)
 find_package(OpenGL REQUIRED)
-target_link_libraries(${CMAKE_PROJECT_NAME} OpenGL::GL)
+target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC OpenGL::GL)
+if (APPLE)
+	target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE "$<LINK_LIBRARY:FRAMEWORK,Cocoa>")
+	target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE "$<LINK_LIBRARY:FRAMEWORK,IOKit>")
+endif()
