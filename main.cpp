@@ -5,19 +5,20 @@
 
 #include "rgba.h"
 
-#ifdef __APPLE__
-#define GL_SILENCE_DEPRECATION
-#endif
 /*
  * Notes for Mac: GLFW_INCLUDE_GLCOREARB will include gl3.h, which with a 2.1
  * context will fail for calls to glGenVertexArrays, etc., (invalid operation),
  * needing instead the APPLE suffix versions. The APPLE suffix versions fail
  * with a 3+ context, and since these higher GL's need VAOs we'll fail by not
- * creating one. It really needs the correct functions dynamically loading.
+ * creating one.
  */
-//#define GLFW_INCLUDE_GLCOREARB
-#define GLFW_INCLUDE_GLEXT
+#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
+#define GL_SILENCE_DEPRECATION
+#define GLFW_INCLUDE_GLCOREARB
+#else
 #define GL_GLEXT_PROTOTYPES
+#endif
+#define GLFW_INCLUDE_GLEXT
 #include <GLFW/glfw3.h>
 
 #include "glplatform.h"
@@ -1262,7 +1263,7 @@ int main(int argc, char* argv[]) {
 		MODE_INFO,
 		MODE_VALIDATE,
 		MODE_GENERATE,
-	} mode = MODE_INFO;
+	} mode = MODE_VALIDATE;
 	for (int n = 1; n < argc; n++) {
 		switch (argv[n][0]) {
 		case 'v':
