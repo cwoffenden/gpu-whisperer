@@ -3,12 +3,12 @@ cmake_minimum_required(VERSION 3.22)
 # mkdir out
 # cd out
 # cmake .. -G "Visual Studio 17 2022"
-# bc-values.sln
+# gpu-whisperer.sln
 #
 # cmake -B out -DCMAKE_BUILD_TYPE=Release
 # cmake --build out --config Release
 
-project("bc-xtractor" DESCRIPTION "BC Texture Data Extractor")
+project("gpu-whisperer" DESCRIPTION "GPU Texture Data Extractor")
 
 include(CheckIPOSupported)
 

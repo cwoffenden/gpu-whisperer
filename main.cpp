@@ -3,25 +3,9 @@
 #include <cstdio>
 #include <limits>
 
+#include "glplatform.h"
 #include "rgba.h"
 
-/*
- * Notes for Mac: GLFW_INCLUDE_GLCOREARB will include gl3.h, which with a 2.1
- * context will fail for calls to glGenVertexArrays, etc., (invalid operation),
- * needing instead the APPLE suffix versions. The APPLE suffix versions fail
- * with a 3+ context, and since these higher GL's need VAOs we'll fail by not
- * creating one.
- */
-#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
-#define GL_SILENCE_DEPRECATION
-#define GLFW_INCLUDE_GLCOREARB
-#else
-#define GL_GLEXT_PROTOTYPES
-#endif
-#define GLFW_INCLUDE_GLEXT
-#include <GLFW/glfw3.h>
-
-#include "glplatform.h"
 
 /**
  * \def DEBUG_DRAW_QUAD

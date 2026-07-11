@@ -4,6 +4,26 @@
  */
 #pragma once
 
+/*
+ * Notes for Mac: GLFW_INCLUDE_GLCOREARB will include gl3.h, which with a GL2
+ * context will fail for calls to glGenVertexArrays, etc., (invalid operation),
+ * needing instead the APPLE suffix versions. The APPLE suffix versions fail
+ * with a 3+ context, and since these higher GL's need VAOs we'll fail to draw
+ * by not creating one.
+ *
+ * Whatever this is... it works fine on the tested platforms (Mac 10.5 PPC and
+ * 26 ARM, with no testing in between, Debian 13 on x64 and ARM).
+ */
+#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
+#define GL_SILENCE_DEPRECATION
+#define GLFW_INCLUDE_GLCOREARB
+#else
+#define GL_GLEXT_PROTOTYPES
+#endif
+#define GLFW_INCLUDE_GLEXT
+
+#include <GLFW/glfw3.h>
+
 #ifndef GL_COMPRESSED_RGB_S3TC_DXT1_EXT
 #define GL_COMPRESSED_RGB_S3TC_DXT1_EXT 0x83F0
 #endif
