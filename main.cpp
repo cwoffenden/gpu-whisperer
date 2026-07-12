@@ -473,7 +473,7 @@ unsigned createBC3(GLuint txId, unsigned min0, unsigned max0, unsigned min1, uns
 		filterClampBoilerplate();
 		glFlush();
 		delete[] blocks;
-		if (currentBoundIsCompressed()) {
+		if (isCurrentBoundCompressed()) {
 			return count;
 		}
 	}
