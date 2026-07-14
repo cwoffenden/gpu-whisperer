@@ -14,11 +14,14 @@
  * Whatever this is... it works fine on the tested platforms (Mac 10.5 PPC and
  * 26 ARM, with no testing in between, Debian 13 on x64 and ARM).
  */
+#ifdef __APPLE__
+#include <AvailabilityMacros.h>
 #if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
 #define GL_SILENCE_DEPRECATION
 #define GLFW_INCLUDE_GLCOREARB
 #else
 #define GL_GLEXT_PROTOTYPES
+#endif
 #endif
 #define GLFW_INCLUDE_GLEXT
 
@@ -27,11 +30,14 @@
 #ifndef GL_COMPRESSED_RGB_S3TC_DXT1_EXT
 #define GL_COMPRESSED_RGB_S3TC_DXT1_EXT 0x83F0
 #endif
-#ifndef GL_COMPRESSED_RGBA_S3TC_DXT3_EXT
-#define GL_COMPRESSED_RGBA_S3TC_DXT3_EXT 0x83F2
+#ifndef GL_COMPRESSED_RGBA_S3TC_DXT5_EXT
+#define GL_COMPRESSED_RGBA_S3TC_DXT5_EXT 0x83F3
 #endif
 #ifndef GL_COMPRESSED_RED_RGTC1
 #define GL_COMPRESSED_RED_RGTC1 0x8DBB
+#endif
+#ifndef GL_COMPRESSED_RED_GREEN_RGTC2
+#define GL_COMPRESSED_RED_GREEN_RGTC2 0x8DBD
 #endif
 #ifndef GL_RGBA32F
 #define GL_RGBA32F GL_RGBA32F_ARB

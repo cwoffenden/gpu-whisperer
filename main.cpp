@@ -4,14 +4,8 @@
 #include <limits>
 
 #include "glplatform.h"
+#include "info.h"
 #include "rgba.h"
-
-
-/**
- * \def DEBUG_DRAW_QUAD
- * Define this to draw the non-compute path to screen.
- */
-//#define DEBUG_DRAW_QUAD
 
 /**
  * GL version selected to create the context.
@@ -1161,7 +1155,7 @@ void APIENTRY debugCallback(GLenum /*source*/, GLenum /*type*/, GLuint /*id*/, G
  * \param[in] show \c true if the window should be shown (default to hiding)
  * \return either a valid window or \c null
  */
-GLFWwindow* createGlfwContext(bool show = false) {
+GLFWwindow* createGlfwContext(unsigned winW, unsigned winH, bool show = false) {
 	if (!glfwInit()) {
 		exit(EXIT_FAILURE);
 	}
@@ -1179,17 +1173,17 @@ GLFWwindow* createGlfwContext(bool show = false) {
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glVers = VERSION_4_3;
-	GLFWwindow* window = glfwCreateWindow(512, 512, "Test", NULL, NULL);
+	GLFWwindow* window = glfwCreateWindow(winW, winH, "Test", NULL, NULL);
 	if (!window) {
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 		glVers = VERSION_3_3;
-		window = glfwCreateWindow(512, 512, "Test", NULL, NULL);
+		window = glfwCreateWindow(winW, winH, "Test", NULL, NULL);
 		if (!window) {
 			glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
 			glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
 			glVers = VERSION_2_0;
-			window = glfwCreateWindow(512, 512, "Test", NULL, NULL);
+			window = glfwCreateWindow(winW, winH, "Test", NULL, NULL);
 			if (!window) {
 				puts("Unable to create a GL context");
 				exit(EXIT_FAILURE);
@@ -1206,6 +1200,7 @@ GLFWwindow* createGlfwContext(bool show = false) {
 
 template<typename T>
 bool drawFramebufferSweepTest(GLuint txId, RGBAf32* const rgba, unsigned const size) {
+	assert(rgba && size);
 	bool success = false;
 	if (createTestSweep<T>(txId, size)) {
 		glViewport(0, 0, size, size);
@@ -1230,14 +1225,15 @@ bool drawFramebufferSweepTest(GLuint txId, RGBAf32* const rgba, unsigned const s
 }
 
 bool runFramebufferSweepTest(RGBAf32* const rgba, unsigned const size, const char* name) {
+	assert(rgba && size && name);
 	bool success = false;
 	if (createFramebuffer(size, size)) {
 		GLuint sweepTx = 0;
 		glGenTextures(1, &sweepTx);
-		printf("Running %s byte readback test\n", name);
+		printf("Running %s RGBA unsigned byte readback test\n", name);
 		success = drawFramebufferSweepTest<uint8_t>(sweepTx, rgba, size);
 		if (success) {
-			printf("Running %s short readback test\n", name);
+			printf("Running %s RGBA unsigned short readback test\n", name);
 			success = drawFramebufferSweepTest<uint16_t>(sweepTx, rgba, size);
 		}
 		glDeleteTextures(1, &sweepTx);
@@ -1261,32 +1257,81 @@ void runValidateFramebuffer(GLFWwindow* /*window*/) {
 	delete[] rgba;
 }
 
+void info() {
+	const char* verStr;
+	switch (glVers) {
+	case VERSION_2_0:
+		verStr = "GL 2.0";
+		break;
+	case VERSION_3_3:
+		verStr = "GL 3.3";
+		break;
+	case VERSION_4_3:
+		verStr = "GL 4.3";
+		break;
+	default:
+		verStr = "uninitialised";
+	}
+	printf("Context version: %s\n", verStr);
+	if (glVers != VERSION_NONE) {
+		showInfo();
+	}
+	exit(EXIT_SUCCESS);
+}
+
 int main(int argc, char* argv[]) {
 	enum Mode {
+		MODE_USAGE,
 		MODE_INFO,
 		MODE_VALIDATE,
 		MODE_GENERATE,
-	} mode = MODE_VALIDATE;
+		MODE_DEBUG_VIEW,
+	} mode = MODE_USAGE;
+#ifndef NDEBUG
+	mode = MODE_INFO;
+#endif
 	for (int n = 1; n < argc; n++) {
-		switch (argv[n][0]) {
-		case 'v':
-			mode = MODE_VALIDATE;
-			break;
-		case 'g':
-			mode = MODE_GENERATE;
-			break;
-		default:
-			mode = MODE_INFO;
+		if (strcmp("--mode", argv[n]) == 0) {
+			if (n + 1 < argc) {
+				switch (argv[n + 1][0]) {
+				case 'i':
+					mode = MODE_INFO;
+					break;
+				case 'v':
+					mode = MODE_VALIDATE;
+					break;
+				case 'g':
+					mode = MODE_GENERATE;
+					break;
+				case 'd':
+					mode = MODE_DEBUG_VIEW;
+					break;
+				default:
+					mode = MODE_USAGE;
+					break;
+				}
+			}
+		} else {
+			if (strcmp("--framebuffer", argv[n]) == 0) {
+				puts("Using framebuffer mode");
+			}
 		}
 	}
-#ifdef DEBUG_DRAW_QUAD
-	GLFWwindow* window = createGlfwContext(true);
-#else
-	GLFWwindow* window = createGlfwContext();
-#endif
-	if (mode == MODE_VALIDATE) {
+
+	GLFWwindow* window = createGlfwContext(SWEEP_BC4, SWEEP_BC4, mode == MODE_DEBUG_VIEW);
+	switch (mode) {
+	case MODE_INFO:
+		info();
+		break;
+	case MODE_VALIDATE:
 		runValidateFramebuffer(window);
+		break;
+	case MODE_DEBUG_VIEW:
+		break;
+	default:
+		showUsage((argc > 0) ? argv[0] : NULL);
 	}
+
 	/*
 	setup();
 
