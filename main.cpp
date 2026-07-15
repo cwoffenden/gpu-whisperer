@@ -5,7 +5,8 @@
 #include <cstdio>
 #include <limits>
 
-#include "glplatform.h"
+#include "debugview.h"
+#include "glcommon.h"
 #include "info.h"
 #include "rgba.h"
 
@@ -208,54 +209,6 @@ void dumpBoundChannelData(bool eight = false, ChannelIndex ch = CHANNEL_R) {
 	assert(glGetError() == 0);
 }
 
-/**
- * Filter to nearest and clamp to edge the current bound texture.
- */
-void filterClampBoilerplate() {
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-}
-
-#if 0
-/**
- * Creates a 4x4 red-only uncompressed 8-bit texture with ideal BC3 values.
- *
- * \param[in] txId pre-generated texture ID to use
- */
-void create4x4RedBC3Vals(GLuint txId) {
-	assert(txId);
-	glBindTexture(GL_TEXTURE_2D, txId);
-	uint8_t const block[16] = {
-		0xFF, 0x00, 0xAA, 0x55,
-		0x00, 0xAA, 0x55, 0xFF,
-		0xAA, 0x55, 0xFF, 0x00,
-		0x55, 0xFF, 0x00, 0xAA
-	};
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, 4, 4, 0, GL_RED, GL_UNSIGNED_BYTE, block);
-	filterClampBoilerplate();
-}
-
-/**
- * Creates a 4x4 red-only uncompressed 8-bit texture with ideal BC4 values.
- *
- * \param[in] txId pre-generated texture ID to use
- */
-void create4x4RedBC4Vals(GLuint txId) {
-	assert(txId);
-	glBindTexture(GL_TEXTURE_2D, txId);
-	uint8_t const block[16] = {
-		0xFF, 0x00, 0xDB, 0xB6,
-		0x92, 0x6D, 0x49, 0x24,
-		0x24, 0x49, 0x6D, 0x92,
-		0xB6, 0xDB, 0x00, 0xFF
-	};
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, 4, 4, 0, GL_RED, GL_UNSIGNED_BYTE, block);
-	filterClampBoilerplate();
-}
-#endif
-
 //**************************** BC Block Generation ****************************/
 
 /**
@@ -320,29 +273,6 @@ void fillBC4Block(BCBlock* _Nonnull block, unsigned val0, unsigned val1) {
 }
 
 /**
- * Tests whether the currently bound texture is hardware compressed.
- *
- * \return \c true if the texture's first mipmap level is compressed
- */
-bool isCurrentBoundCompressed() {
-	GLint valid = GL_FALSE;
-	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_COMPRESSED, &valid);
-	return valid == GL_TRUE;
-}
-
-/**
- * Tests whether the currently bound texture has dimensions greater than zero
- * (therefore this contains valid content).
- *
- * \return \c true if the texture's first mipmap level has content
- */
-bool isCurrentBoundValid() {
-	GLint size = 0;
-	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &size);
-	return size > 0;
-}
-
-/**
  * Creates a BC1 texture grid with endpoints varying between the specified
  * minimum and maximum, on the selected \a channel only. Variance in the first
  * endpoint runs down the Y-axis (being stable in the X).
@@ -386,7 +316,7 @@ unsigned createBC1(GLuint txId, unsigned min0, unsigned max0, unsigned min1, uns
 		filterClampBoilerplate();
 		glFlush();
 		delete[] blocks;
-		if (isCurrentBoundCompressed()) {
+		if (isBoundTextureCompressed()) {
 			return count;
 		}
 	}
@@ -452,7 +382,7 @@ unsigned createBC3(GLuint txId, unsigned min0, unsigned max0, unsigned min1, uns
 		filterClampBoilerplate();
 		glFlush();
 		delete[] blocks;
-		if (isCurrentBoundCompressed()) {
+		if (isBoundTextureCompressed()) {
 			return count;
 		}
 	}
@@ -493,7 +423,7 @@ unsigned createBC4(GLuint txId, unsigned min0, unsigned max0, unsigned min1, uns
 		filterClampBoilerplate();
 		glFlush();
 		delete[] blocks;
-		if (isCurrentBoundCompressed()) {
+		if (isBoundTextureCompressed()) {
 			return count;
 		}
 	}
@@ -666,7 +596,7 @@ bool createTestSweep(GLuint const txId, unsigned const size) {
 	filterClampBoilerplate();
 	glFlush();
 	delete[] pixels;
-	return isCurrentBoundValid();
+	return doesBoundTextureHaveContent();
 }
 
 /**
@@ -823,150 +753,10 @@ void computeTest() {
 
 //**************************** Framebuffer Version ****************************/
 
-/**
- * Helper to compile a shader from source.
- *
- * \param[in] type shader type
- * \param[in] text shader source
- * \return the shader ID (or zero if compilation failed)
- */
-static GLuint compileShaderText(GLenum const type, const GLchar* const _Nonnull text) {
-	if (GLuint shader = glCreateShader(type)) {
-		const char* texts[1] = {text};
-		glShaderSource (shader, 1, texts, NULL);
-		glCompileShader(shader);
-		GLint compiled;
-		glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
-		if (compiled == GL_TRUE) {
-			return shader;
-		} else {
-			GLint logLen;
-			glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logLen);
-			if (logLen > 1) {
-				GLchar* logStr = new GLchar[logLen];
-				glGetShaderInfoLog(shader, logLen, NULL, logStr);
-				printf("Shader compile error: %s\n", logStr);
-				delete[] logStr;
-			}
-			glDeleteShader(shader);
-		}
-	}
-	return 0;
-}
-
-/**
- * Vertex attribute IDs.
- */
-enum VertexID {
-	VERT_POSN_ID = 0, /**< Vertex positions. */
-	VERT_TEX0_ID = 1, /**< Vertex texture channel 0. */
-	VERT_TEX1_ID = 2, /**< Vertex texture channel 1. */
-};
-
-/**
- * GLSL 1.10 compatible vertex shader, designed only to draw a fullscreen
- * textured quad.
- */
-GLchar const vertShaderTexture110[] =
-	"attribute vec2 aPosn;\n"
-	"attribute vec2 aTex0;\n"
-	"varying vec2 vTex0;\n"
-	"void main() {\n"
-	"	vTex0 = aTex0;\n"
-	"	gl_Position = vec4(aPosn.x, aPosn.y, 0.0, 1.0);\n"
-	"}\n";
-
-/**
- * GLSL 1.50 version of the \c #vertShaderTexture110 quad shader.
- */
-GLchar const vertShaderTexture150[] =
-	"#version 150\n"
-	"in vec2 aPosn;\n"
-	"in vec2 aTex0;\n"
-	"out vec2 vTex0;\n"
-	"void main() {\n"
-	"	vTex0 = aTex0;\n"
-	"	gl_Position = vec4(aPosn.x, aPosn.y, 0.0, 1.0);\n"
-	"}\n";
-
-/**
- * GLSL 1.10 compatible fragment shader, designed only to draw a fullscreen
- * textured quad.
- */
-GLchar const fragShaderTexture110[] =
-	"uniform sampler2D srcTx;\n"
-	"varying vec2 vTex0;\n"
-	"void main() {\n"
-	"	gl_FragColor = texture2D(srcTx, vTex0);\n"
-	"}\n";
-
-/**
- * GLSL 1.50 version of the \c #fragShaderTexture110 quad shader.
- */
-GLchar const fragShaderTexture150[] =
-	"#version 150\n"
-	"precision highp float;\n"
-	"uniform sampler2D srcTx;\n"
-	"in vec2 vTex0;\n"
-	"out vec4 FragColor;\n"
-	"void main() {\n"
-	"	FragColor = texture(srcTx, vTex0);\n"
-	"}\n";
-
-GLuint progId = 0; /**< Program ID. */
-GLuint vertId = 0; /**< Vertex shader ID. */
-GLuint fragId = 0; /**< Fragment shader ID. */
+Program prog; /**< Simple quad drawing program. */
 
 GLuint fbTxId = 0; /**< Texture ID backing \c fbufId (RGBA). */
 GLuint fbufId = 0; /**< Framebuffer ID. */
-
-/**
- * Helper to create vertex and fragment shaders. After calling the current
- * program is set to the compiled result.
- *
- * \param[in] vertSrc vertex shader source
- * \param[in] fragSrc fragment shader source
- * \return \c true of compilation and linking was successful
- */
-bool createVertFragShaders(const GLchar* _Nonnull vertSrc, const GLchar* _Nonnull fragSrc) {
-	assert(progId == 0);
-	progId = glCreateProgram();
-	if (progId) {
-		glBindAttribLocation(progId, VERT_POSN_ID, "aPosn");
-		glBindAttribLocation(progId, VERT_TEX0_ID, "aTex0");
-		glBindAttribLocation(progId, VERT_TEX1_ID, "aTex1");
-		vertId = compileShaderText(GL_VERTEX_SHADER,   vertSrc);
-		fragId = compileShaderText(GL_FRAGMENT_SHADER, fragSrc);
-		if (vertId && fragId) {
-			glAttachShader(progId, vertId);
-			glAttachShader(progId, fragId);
-			glLinkProgram (progId);
-			GLint linked;
-			glGetProgramiv(progId, GL_LINK_STATUS, &linked);
-			if (linked == GL_TRUE) {
-				glUseProgram(progId);
-				return true;
-			}
-		}
-	}
-	puts("Failed to create shaders");
-	return false;
-}
-
-/**
- * Clean-up for \c #createVertFragShaders() (program and shaders).
- */
-void deleteVertFragShaders() {
-	glUseProgram(0);
-	glDetachShader (progId, vertId);
-	glDetachShader (progId, fragId);
-	glDeleteProgram(progId);
-	glDeleteShader (vertId);
-	glDeleteShader (fragId);
-	progId = 0;
-	vertId = 0;
-	fragId = 0;
-}
 
 /**
  * Creates a framebuffer backed by the specified texture type. After calling,
@@ -991,7 +781,7 @@ bool createFramebuffer(unsigned bufW, unsigned bufH, GLint format = GL_RGBA32F, 
 	glBindTexture(GL_TEXTURE_2D, fbTxId);
 	glTexImage2D(GL_TEXTURE_2D, 0, format, bufW, bufH, 0, GL_RGBA, type, NULL);
 	filterClampBoilerplate();
-	bool valid = isCurrentBoundValid();
+	bool valid = doesBoundTextureHaveContent();
 	glBindTexture(GL_TEXTURE_2D, 0);
 	if (valid) {
 		glGenFramebuffers(1, &fbufId);
@@ -1022,43 +812,6 @@ void deleteFramebuffer() {
 GLuint vaoId = 0; /**< VAO fullscreen textured quad.  */
 GLuint vboId = 0; /**< VBO for \c vObjId quad. */
 
-/**
- * Creates a fullscreen textured quad. After calling the VAO \c vaoId and/or its
- * VBO \c vboId remain bound (to ease drawing, since this is the only geometry).
- */
-void createTexturedQuad() {
-	assert(vaoId == 0);
-	float const verts[]= {
-		 1.0f,  1.0f, 1.0f, 1.0f, // TR
-		-1.0f,  1.0f, 0.0f, 1.0f, // TL
-		-1.0f, -1.0f, 0.0f, 0.0f, // BL
-
-		-1.0f, -1.0f, 0.0f, 0.0f, // BL
-		 1.0f, -1.0f, 1.0f, 0.0f, // BR
-		 1.0f,  1.0f, 1.0f, 1.0f, // TR
-	};
-	/*
-	 * Mac with GL2.1 and the GL3 header will fail here. Using the GL2 header
-	 * with the APPLE suffix works, as will a GL3 and 4 context, but for this
-	 * simple example a VAO isn't used (but it is necessary to have one bound
-	 * for newer GL, otherwise the VBO fails).
-	 */
-#ifdef GL_VERSION_3_0
-	if (glVers > VERSION_2_0) {
-		glGenVertexArrays(1, &vaoId);
-		glBindVertexArray(vaoId);
-	}
-#endif
-	glGenBuffers(1, &vboId);
-	glBindBuffer(GL_ARRAY_BUFFER, vboId);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STATIC_DRAW);
-	glVertexAttribPointer(VERT_POSN_ID, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), reinterpret_cast<void*>(0));
-	glEnableVertexAttribArray(VERT_POSN_ID);
-	glVertexAttribPointer(VERT_TEX0_ID, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), reinterpret_cast<void*>(2 * sizeof(float)));
-	glEnableVertexAttribArray(VERT_TEX0_ID);
-	assert(glGetError() == 0);
-}
-
 void deleteTexturedQuad() {
 	glDeleteBuffers(1, &vboId);
 	vaoId = 0;
@@ -1075,15 +828,15 @@ void initFramebufferTest() {
 	createFramebuffer(SWEEP_BC1, SWEEP_BC1);
 #endif
 	if (glVers > VERSION_2_0) {
-		createVertFragShaders(vertShaderTexture150, fragShaderTexture150);
+		createVertFragShaders(vertShaderTexture150, fragShaderTexture150, prog);
 	} else {
-		createVertFragShaders(vertShaderTexture110, fragShaderTexture110);
+		createVertFragShaders(vertShaderTexture110, fragShaderTexture110, prog);
 	}
 
 	GLuint txName = 0;
 	glGenTextures(1, &txName);
 	createTestSweep<uint8_t>(txName, SWEEP_BC4);
-	createTexturedQuad();
+	createTexturedQuad(glVers, vaoId, vboId);
 }
 
 void drawFramebufferTest() {
@@ -1110,10 +863,6 @@ void setup() {
 	 * different results than drawing to a float framebuffer (which matches
 	 * compute shader).
 	 */
-	//bc3RedTest();
-	//bc4RedTest();
-	//bc4Red8ValTest();
-	//computeTest();
 	initFramebufferTest();
 	drawFramebufferTest();
 	/*
@@ -1128,16 +877,6 @@ void setup() {
 	printf("Control 0x49: 0x%08X (%0.8f)\n", floatBits(0x49 / 255.0f), 0x49 / 255.0f);
 	printf("Control 0x24: 0x%08X (%0.8f)\n", floatBits(0xB6 / 255.0f), 0x24 / 255.0f);
 	 */
-}
-
-void draw(GLFWwindow* window) {
-	int fbW, fbH;
-	glfwGetFramebufferSize(window, &fbW, &fbH);
-	glViewport(0, 0, fbW, fbH);
-	glClearColor(0.3f, 0.4f, 0.8f, 1.0f);
-	glClear(GL_COLOR_BUFFER_BIT);
-
-	drawFramebufferTest();
 }
 
 #ifdef GL_VERSION_4_3
@@ -1162,6 +901,7 @@ GLFWwindow* createGlfwContext(unsigned winW, unsigned winH, bool show = false) {
 	}
 	if (!show) {
 		glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+		glfwWindowHint(GLFW_COCOA_GRAPHICS_SWITCHING, GLFW_FALSE);
 	}
 	/*
 	 * We try to create a compute shader compatible context, with retries for
@@ -1246,11 +986,11 @@ bool runFramebufferSweepTest(RGBAf32* const _Nonnull rgba, unsigned const size, 
 void runValidateFramebuffer(GLFWwindow* /*window*/) {
 	// Common shaders and fullscreen quad
 	if (glVers > VERSION_2_0) {
-		createVertFragShaders(vertShaderTexture150, fragShaderTexture150);
+		createVertFragShaders(vertShaderTexture150, fragShaderTexture150, prog);
 	} else {
-		createVertFragShaders(vertShaderTexture110, fragShaderTexture110);
+		createVertFragShaders(vertShaderTexture110, fragShaderTexture110, prog);
 	}
-	createTexturedQuad();
+	createTexturedQuad(glVers, vaoId, vboId);
 	// Buffer large enough for all tests
 	RGBAf32* const rgba = new RGBAf32[SWEEP_BC4 * SWEEP_BC4];
 	runFramebufferSweepTest(rgba, SWEEP_BC1, "256x256");
@@ -1267,7 +1007,7 @@ int main(int argc, char* argv[]) {
 		MODE_DEBUG_VIEW,
 	} mode = MODE_USAGE;
 #ifndef NDEBUG
-	mode = MODE_INFO;
+	mode = MODE_DEBUG_VIEW;
 #endif
 	for (int n = 1; n < argc; n++) {
 		if (strcmp("--mode", argv[n]) == 0) {
@@ -1306,22 +1046,11 @@ int main(int argc, char* argv[]) {
 		runValidateFramebuffer(window);
 		break;
 	case MODE_DEBUG_VIEW:
+		showDebugView(window, glVers);
 		break;
 	default:
 		showUsage((argc > 0) ? argv[0] : NULL);
 	}
-
-	/*
-	setup();
-
-#ifdef DEBUG_DRAW_QUAD
-	while (!glfwWindowShouldClose(window)) {
-		draw(window);
-		glfwSwapBuffers(window);
-		glfwPollEvents();
-	}
-#endif
-	 */
 	glfwDestroyWindow(window);
 	glfwTerminate();
 	return EXIT_SUCCESS;

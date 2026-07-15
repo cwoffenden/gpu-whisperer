@@ -4,7 +4,7 @@
  */
 #pragma once
 
-#include "glplatform.h"
+#include "glcommon.h"
 
 /**
  * Helper to print the program's context info, e.g.:
