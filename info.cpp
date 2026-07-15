@@ -81,16 +81,19 @@ static bool find(const char* extStr, const char* extEnd, const char* ext1, const
 }
 
 /**
- * Best guess at what texture formats are supported.
+ * Ask GL what texture formats are supported (which will probably be incorrect,
+ * with known issues documented in the source).
  *
  * \param[out] dxt1 DXT1/BC1 support
  * \param[out] dxt5 DXT5/BC3 support
  * \param[out] rgtc RGTC/BC4/BC5 support
+ * \param[out] latc LATC support (legacy)
  */
-static void getFormatSupport(bool& dxt1, bool& dxt5, bool& rgtc) {
+static void queryFormatSupport(bool& dxt1, bool& dxt5, bool& rgtc, bool& latc) {
 	dxt1 = false;
 	dxt5 = false;
 	rgtc = false;
+	latc = false;
 	/*
 	 * Initial testing is via the exposed compressed texture formats. This
 	 * seems to be quite complete and work fine for ES, not so for desktop GL
@@ -109,8 +112,11 @@ static void getFormatSupport(bool& dxt1, bool& dxt5, bool& rgtc) {
 					dxt5 = true;
 				}
 			}
-			if (find(numFmt, texFmt, GL_COMPRESSED_RED_RGTC1, GL_COMPRESSED_RED_GREEN_RGTC2)) {
+			if (find(numFmt, texFmt, GL_COMPRESSED_RED_RGTC1)) {
 				rgtc = true;
+			}
+			if (find(numFmt, texFmt, GL_COMPRESSED_LUMINANCE_LATC1_EXT)) {
+				latc = true;
 			}
 			free(texFmt);
 		}
@@ -138,6 +144,13 @@ static void getFormatSupport(bool& dxt1, bool& dxt5, bool& rgtc) {
 			rgtc = true;
 		}
 	}
+	if (!latc) {
+		if (glfwExtensionSupported("GL_EXT_texture_compression_latc") ||
+			glfwExtensionSupported("GL_NV_texture_compression_latc"))
+		{
+			latc = true;
+		}
+	}
 }
 
 /**
@@ -146,11 +159,11 @@ static void getFormatSupport(bool& dxt1, bool& dxt5, bool& rgtc) {
  * \param[in] path full path
  * \return the file at the end of the path (or an empty string if there is no file)
  */
-static const char* filename(const char* path) {
+static const char* extractFilename(const char* path) {
 	if (path) {
 		const char* found  = strrchr(path, '/');
 		if (!found) {
-			found = strrchr(path, '\\');
+			 found = strrchr(path, '\\');
 		}
 		if (found && strlen(found) > 0) {
 			return found + 1;
@@ -159,19 +172,22 @@ static const char* filename(const char* path) {
 	return path;
 }
 
+//*****************************************************************************/
+
 void showInfo() {
-	bool dxt1, dxt5, rgtc;
-	getFormatSupport(dxt1, dxt5, rgtc);
+	bool dxt1, dxt5, rgtc, latc;
+	queryFormatSupport(dxt1, dxt5, rgtc, latc);
 	printf("GL version: %s\n", reinterpret_cast<const char*>(glGetString(GL_VERSION)));
-	printf("Hardware has DXT1/BC1 support: %s\n", dxt1 ? "yes" : "no");
-	printf("Hardware has DXT5/BC3 support: %s\n", dxt5 ? "yes" : "no");
-	printf("Hardware has RGTC/BC4 support: %s\n", rgtc ? "yes" : "no");
+	printf("GL reports DXT1/BC1 support: %s\n", dxt1 ? "yes" : "no");
+	printf("GL reports DXT5/BC3 support: %s\n", dxt5 ? "yes" : "no");
+	printf("GL reports RGTC/BC4 support: %s\n", rgtc ? "yes" : "no");
+	printf("GL reports LATC support: %s\n", latc ? "yes" : "no");
 }
 
 void showUsage(const char* path) {
-	const char* prog = filename(path);
+	const char* prog = extractFilename(path);
 	if (!prog) {
-		prog = "gpu-whisperer";
+		 prog = "gpu-whisperer";
 	}
 	printf("Usage: %s --mode mode [--framebuffer]\n", prog);
 	printf("\t--mode options are:\n");
@@ -179,5 +195,5 @@ void showUsage(const char* path) {
 	printf("\t\tvalidate tests the buffer precision\n");
 	printf("\t\tgenerate extract texture data\n");
 	printf("\t\tdebug show the internal textures\n");
-	printf("\t--framebuffer always use the frambuffer fallback\n");
+	printf("\t--framebuffer always use the framebuffer fallback\n");
 }

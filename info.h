@@ -1,5 +1,5 @@
 /**
-* \file info.h
+ * \file info.h
  * Utilities to show program info.
  */
 #pragma once
