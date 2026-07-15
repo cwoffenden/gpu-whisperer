@@ -19,7 +19,7 @@
  * \param[in] fmt2nd optional format to match (or \c GL_INVALID_ENUM to only match on \a fmt1st)
  * \return \c true if the supplied format(s) are found
  */
-static bool find(GLint numFmt, const GLint* texFmt, GLint fmt1st, GLint fmt2nd = GL_INVALID_ENUM) {
+static bool find(GLint numFmt, const GLint* _Nonnull texFmt, GLint fmt1st, GLint fmt2nd = GL_INVALID_ENUM) {
 	for (GLint n1 = 0; n1 < numFmt; n1++) {
 		if (texFmt[n1] == fmt1st) {
 			if (fmt2nd == GL_INVALID_ENUM) {
@@ -48,7 +48,7 @@ static bool find(GLint numFmt, const GLint* texFmt, GLint fmt1st, GLint fmt2nd =
  * \param[in] ext2 optional extension to match (defaulting to \c null to search for only \a ext1)
  * \return \c true if \e either of the extensions were found
  */
-static bool find(const char* extStr, const char* extEnd, const char* ext1, const char* ext2 = NULL) {
+static bool find(const char* _Nonnull extStr, const char* _Nonnull extEnd, const char* _Nonnull ext1, const char* _Nullable ext2 = nullptr) {
 	size_t const ext1Len =          strlen(ext1);
 	size_t const ext2Len = (ext2) ? strlen(ext2) : 0;
 	for (const char* ext = extStr; ext < extEnd;) {
@@ -159,7 +159,7 @@ static void queryFormatSupport(bool& dxt1, bool& dxt5, bool& rgtc, bool& latc) {
  * \param[in] path full path
  * \return the file at the end of the path (or an empty string if there is no file)
  */
-static const char* extractFilename(const char* path) {
+static const char* extractFilename(const char* _Nullable path) {
 	if (path) {
 		const char* found  = strrchr(path, '/');
 		if (!found) {
@@ -184,7 +184,7 @@ void showInfo() {
 	printf("GL reports LATC support: %s\n", latc ? "yes" : "no");
 }
 
-void showUsage(const char* path) {
+void showUsage(const char* _Nullable path) {
 	const char* prog = extractFilename(path);
 	if (!prog) {
 		 prog = "gpu-whisperer";
