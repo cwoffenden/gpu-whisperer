@@ -269,7 +269,7 @@ void create4x4RedBC4Vals(GLuint txId) {
  * \param[in] val1 second endpoint
  * \param[in] channel choice of \c GL_RED, \c GL_GREEN or \c GL_BLUE channel (or \c GL_RGB for all)
  */
-void fillBC1Block(BCBlock* block, unsigned val0, unsigned val1, unsigned channel = GL_RED) {
+void fillBC1Block(BCBlock* _Nonnull block, unsigned val0, unsigned val1, unsigned channel = GL_RED) {
 	assert(block);
 	new(block) BCBlock(
 		0x00, 0x00,
@@ -308,7 +308,7 @@ void fillBC1Block(BCBlock* block, unsigned val0, unsigned val1, unsigned channel
  * \param[in] val0 first endpoint
  * \param[in] val1 second endpoint
  */
-void fillBC4Block(BCBlock* block, unsigned val0, unsigned val1) {
+void fillBC4Block(BCBlock* _Nonnull block, unsigned val0, unsigned val1) {
 	assert(block);
 	new(block) BCBlock(
 		0x00, 0x00,
@@ -331,8 +331,8 @@ bool isCurrentBoundCompressed() {
 }
 
 /**
- * Tests whether the currently bound texture has has dimensions greater than
- * zero (and this contains valid content).
+ * Tests whether the currently bound texture has dimensions greater than zero
+ * (therefore this contains valid content).
  *
  * \return \c true if the texture's first mipmap level has content
  */
@@ -645,7 +645,7 @@ static T calcSweepVal(unsigned const idx, unsigned const x, unsigned const y, un
  *
  * \tparam T data type, tested with \c uint8_t and \c uint16_t
  * \param[in] txId pre-generated texture ID to use
- * \param[in] size texture dimension to use (e.g \c 256 for BC3)
+ * \param[in] size texture dimension to use (e.g: \c 256 for BC3)
  * \return \c true if texture creation was successful and \a txId has valid content
  */
 template<typename T>
@@ -675,11 +675,11 @@ bool createTestSweep(GLuint const txId, unsigned const size) {
  *
  * \tparam T data type, tested with \c uint8_t and \c uint16_t
  * \param[in] rgba start of the RGBA buffer containing \a size \c * \a size entries
- * \param[in] size texture dimension to use (e.g \c 256 for BC3)
+ * \param[in] size texture dimension to use (e.g: \c 256 for BC3)
  * \return \c true if verification was successful
  */
 template<typename T>
-bool verifyTestSweep(RGBAf32* const rgba, unsigned const size) {
+bool verifyTestSweep(RGBAf32* const _Nonnull rgba, unsigned const size) {
 	assert(rgba && size);
 	unsigned idxVal = 0;
 	for (unsigned y = 0; y < size; y++) {
@@ -830,7 +830,7 @@ void computeTest() {
  * \param[in] text shader source
  * \return the shader ID (or zero if compilation failed)
  */
-static GLuint compileShaderText(GLenum const type, const GLchar* const text) {
+static GLuint compileShaderText(GLenum const type, const GLchar* const _Nonnull text) {
 	if (GLuint shader = glCreateShader(type)) {
 		const char* texts[1] = {text};
 		glShaderSource (shader, 1, texts, NULL);
@@ -859,8 +859,8 @@ static GLuint compileShaderText(GLenum const type, const GLchar* const text) {
  */
 enum VertexID {
 	VERT_POSN_ID = 0, /**< Vertex positions. */
-	VERT_TEX0_ID = 1, /**< Vertex texture channel channel 0. */
-	VERT_TEX1_ID = 2, /**< Vertex texture channel channel 1. */
+	VERT_TEX0_ID = 1, /**< Vertex texture channel 0. */
+	VERT_TEX1_ID = 2, /**< Vertex texture channel 1. */
 };
 
 /**
@@ -928,7 +928,7 @@ GLuint fbufId = 0; /**< Framebuffer ID. */
  * \param[in] fragSrc fragment shader source
  * \return \c true of compilation and linking was successful
  */
-bool createVertFragShaders(const GLchar* vertSrc, const GLchar* fragSrc) {
+bool createVertFragShaders(const GLchar* _Nonnull vertSrc, const GLchar* _Nonnull fragSrc) {
 	assert(progId == 0);
 	progId = glCreateProgram();
 	if (progId) {
@@ -954,7 +954,7 @@ bool createVertFragShaders(const GLchar* vertSrc, const GLchar* fragSrc) {
 }
 
 /**
- * Cleanup for \c #createVertFragShaders() (program and shaders).
+ * Clean-up for \c #createVertFragShaders() (program and shaders).
  */
 void deleteVertFragShaders() {
 	glUseProgram(0);
@@ -1009,7 +1009,7 @@ bool createFramebuffer(unsigned bufW, unsigned bufH, GLint format = GL_RGBA32F, 
 }
 
 /**
- * Cleanup for \c #createFramebuffer() (framebuffer and backing texture).
+ * Clean-up for \c #createFramebuffer() (framebuffer and backing texture).
  */
 void deleteFramebuffer() {
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -1151,6 +1151,8 @@ void APIENTRY debugCallback(GLenum /*source*/, GLenum /*type*/, GLuint /*id*/, G
  * GL version possible (setting the global \c glVers in the process). If no
  * context can be created then the application exits.
  *
+ * \param[in] winW window width
+ * \param[in] winH window height
  * \param[in] show \c true if the window should be shown (default to hiding)
  * \return either a valid window or \c null
  */
@@ -1198,7 +1200,7 @@ GLFWwindow* createGlfwContext(unsigned winW, unsigned winH, bool show = false) {
 }
 
 template<typename T>
-bool drawFramebufferSweepTest(GLuint txId, RGBAf32* const rgba, unsigned const size) {
+bool drawFramebufferSweepTest(GLuint txId, RGBAf32* const _Nonnull rgba, unsigned const size) {
 	assert(rgba && size);
 	bool success = false;
 	if (createTestSweep<T>(txId, size)) {
@@ -1223,7 +1225,7 @@ bool drawFramebufferSweepTest(GLuint txId, RGBAf32* const rgba, unsigned const s
 	return success;
 }
 
-bool runFramebufferSweepTest(RGBAf32* const rgba, unsigned const size, const char* name) {
+bool runFramebufferSweepTest(RGBAf32* const _Nonnull rgba, unsigned const size, const char* _Nonnull name) {
 	assert(rgba && size && name);
 	bool success = false;
 	if (createFramebuffer(size, size)) {
