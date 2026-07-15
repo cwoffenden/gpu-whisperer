@@ -46,6 +46,7 @@ else()
 	# TODO: look at which compilers will take -fno-signed-zeros (older GCC won't)
 	add_compile_options(
 		-Wall -Wextra -Werror
+		-Wno-c++0x-compat
 		-fno-math-errno
 		$<$<CONFIG:DEBUG>:-O0>
 		$<$<CONFIG:DEBUG>:-g3>
