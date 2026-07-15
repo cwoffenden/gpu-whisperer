@@ -4,8 +4,6 @@
 #include <cstdio>
 #include <cstring>
 
-#include "glplatform.h"
-
 /**
  * Helper to search through \a texFmt to find a match for \a fmt1st \e and
  * optionally, if supplied, \a fmt2nd.
@@ -174,14 +172,33 @@ static const char* extractFilename(const char* _Nullable path) {
 
 //*****************************************************************************/
 
-void showInfo() {
-	bool dxt1, dxt5, rgtc, latc;
-	queryFormatSupport(dxt1, dxt5, rgtc, latc);
-	printf("GL version: %s\n", reinterpret_cast<const char*>(glGetString(GL_VERSION)));
-	printf("GL reports DXT1/BC1 support: %s\n", dxt1 ? "yes" : "no");
-	printf("GL reports DXT5/BC3 support: %s\n", dxt5 ? "yes" : "no");
-	printf("GL reports RGTC/BC4 support: %s\n", rgtc ? "yes" : "no");
-	printf("GL reports LATC support: %s\n", latc ? "yes" : "no");
+void showInfo(ContextVersion glVers) {
+	const char* verStr;
+	switch (glVers) {
+	case VERSION_2_0:
+		verStr = "2.0";
+		break;
+	case VERSION_3_3:
+		verStr = "3.3";
+		break;
+	case VERSION_4_3:
+		verStr = "4.3";
+		break;
+	default:
+		verStr = "uninitialised";
+	}
+	printf("GL context version: %s\n", verStr);
+	if (glVers != VERSION_NONE) {
+		bool dxt1, dxt5, rgtc, latc;
+		queryFormatSupport(dxt1, dxt5, rgtc, latc);
+		printf("GL API version: %s\n", reinterpret_cast<const char*>(glGetString(GL_VERSION)));
+		printf("GL reports DXT1/BC1 support: %s\n", dxt1 ? "yes" : "no");
+		printf("GL reports DXT5/BC3 support: %s\n", dxt5 ? "yes" : "no");
+		printf("GL reports RGTC/BC4 support: %s\n", rgtc ? "yes" : "no");
+		printf("GL reports LATC support: %s\n", latc ? "yes" : "no");
+	}
+	printf("GLFW version: %s\n", glfwGetVersionString());
+	exit(EXIT_SUCCESS);
 }
 
 void showUsage(const char* _Nullable path) {
@@ -196,4 +213,5 @@ void showUsage(const char* _Nullable path) {
 	printf("\t\tgenerate extract texture data\n");
 	printf("\t\tdebug show the internal textures\n");
 	printf("\t--framebuffer always use the framebuffer fallback\n");
+	exit(EXIT_SUCCESS);
 }

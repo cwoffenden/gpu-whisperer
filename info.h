@@ -4,7 +4,7 @@
  */
 #pragma once
 
-#include "defines.h"
+#include "glplatform.h"
 
 /**
  * Helper to print the program's context info, e.g.:
@@ -14,11 +14,17 @@
  *	Hardware has DXT5/BC3 support: yes
  *	Hardware has RGTC/BC4 support: no
  * \endcode
+ *
+ * \note After calling the application will exit.
+ *
+ * \param[in] glVers Context version acquired at start-up
  */
-void showInfo();
+void showInfo(ContextVersion glVers);
 
 /**
  * Helper to print the program's command line options.
+ *
+ * \note After calling the application will exit.
  *
  * \param[in] path optional full path of the application (from \c argv)
  */

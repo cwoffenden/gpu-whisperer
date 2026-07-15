@@ -10,14 +10,9 @@
 #include "rgba.h"
 
 /**
- * GL version selected to create the context.
+ * GLFW context version.
  */
-enum GLVersion {
-	VERSION_NONE, /**< No valid context. */
-	VERSION_2_0,  /**< Legacy GL without VAO support. */
-	VERSION_3_3,  /**< Most compatible pre-compute shader GL */
-	VERSION_4_3,  /**< Gl with compute shaders. */
-} glVers;
+ContextVersion glVers = VERSION_NONE;
 
 /**
  * \c BCBlock internal union for 16-bit colour endpoints.
@@ -30,6 +25,8 @@ union RGB565 {
 		uint16_t r: 5;
 	};
 };
+
+static_assert(sizeof(RGB565) == 2, "RGB565 should be 2 bytes");
 
 struct BCBlock {
 	union {
@@ -91,7 +88,7 @@ struct BCBlock {
 	}
 };
 
-//static_assert(sizeof(BCBlock) == 8, "BC block should be 8 bytes");
+static_assert(sizeof(BCBlock) == 8, "BC block should be 8 bytes");
 
 /**
  * Block of 16 float pixels arranged as 4x4.
@@ -1259,28 +1256,6 @@ void runValidateFramebuffer(GLFWwindow* /*window*/) {
 	delete[] rgba;
 }
 
-void info() {
-	const char* verStr;
-	switch (glVers) {
-	case VERSION_2_0:
-		verStr = "GL 2.0";
-		break;
-	case VERSION_3_3:
-		verStr = "GL 3.3";
-		break;
-	case VERSION_4_3:
-		verStr = "GL 4.3";
-		break;
-	default:
-		verStr = "uninitialised";
-	}
-	printf("Context version: %s\n", verStr);
-	if (glVers != VERSION_NONE) {
-		showInfo();
-	}
-	exit(EXIT_SUCCESS);
-}
-
 int main(int argc, char* argv[]) {
 	enum Mode {
 		MODE_USAGE,
@@ -1323,7 +1298,7 @@ int main(int argc, char* argv[]) {
 	GLFWwindow* window = createGlfwContext(SWEEP_BC4, SWEEP_BC4, mode == MODE_DEBUG_VIEW);
 	switch (mode) {
 	case MODE_INFO:
-		info();
+		showInfo(glVers);
 		break;
 	case MODE_VALIDATE:
 		runValidateFramebuffer(window);

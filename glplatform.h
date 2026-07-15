@@ -6,6 +6,16 @@
 
 #include "defines.h"
 
+/**
+ * GL version selected to create the context.
+ */
+enum ContextVersion {
+	VERSION_NONE =  0, /**< No valid context. */
+	VERSION_2_0  = 20, /**< Legacy GL without VAO support. */
+	VERSION_3_3  = 33, /**< Most compatible pre-compute shader GL */
+	VERSION_4_3  = 43, /**< Gl with compute shaders. */
+};
+
 /*
  * Notes for Mac: GLFW_INCLUDE_GLCOREARB will include gl3.h, which with a GL2
  * context will fail for calls to glGenVertexArrays, etc., (invalid operation),
