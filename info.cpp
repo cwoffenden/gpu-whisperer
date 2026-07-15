@@ -46,7 +46,7 @@ static bool find(GLint numFmt, const GLint* _Nonnull texFmt, GLint fmt1st, GLint
  * \param[in] ext2 optional extension to match (defaulting to \c null to search for only \a ext1)
  * \return \c true if \e either of the extensions were found
  */
-static bool find(const char* _Nonnull extStr, const char* _Nonnull extEnd, const char* _Nonnull ext1, const char* _Nullable ext2 = nullptr) {
+/*static*/ bool find(const char* _Nonnull extStr, const char* _Nonnull extEnd, const char* _Nonnull ext1, const char* _Nullable ext2 = nullptr) {
 	size_t const ext1Len =          strlen(ext1);
 	size_t const ext2Len = (ext2) ? strlen(ext2) : 0;
 	for (const char* ext = extStr; ext < extEnd;) {
