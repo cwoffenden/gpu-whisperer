@@ -82,7 +82,7 @@
  * \c NULL for other compilers or versions).
  */
 #ifndef nullptr
-#if !((_MSC_VER >= 1600) || __has_feature(cxx_nullptr) || GCC_MIN_VER(4, 6))
+#if !((_MSC_VER >= 1600) || __has_feature(cxx_nullptr) || (GCC_MIN_VER(4, 6) && __cplusplus >= 201103L))
 #define nullptr NULL
 #endif
 #endif
@@ -126,7 +126,7 @@
  * \param str error string literal to show if \a exp is \c false (note this is \e not optional, as it is in C++11)
  */
 #ifndef static_assert
-#if !((_MSC_VER >= 1700) || __has_feature(cxx_static_assert) || GCC_MIN_VER(4, 6))
+#if !((_MSC_VER >= 1700) || __has_feature(cxx_static_assert) || (GCC_MIN_VER(4, 6) && __cplusplus >= 201103L))
 #define static_assert(exp, str)
 #endif
 #endif
