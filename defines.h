@@ -116,6 +116,23 @@
 #endif
 
 /**
+ * \def __unused
+ * Attribute that marks a function, parameter, variable, etc., as unused,
+ * silencing any \c -Wunused warnings.
+ *
+ * \note This is a Clang 3.9 and GCC 4.2 onwards only feature (here for
+ * compatibility with Xcode). Earlier compiler versions may support it with C,
+ * but not C++ or Objective-C. Analogous to the C++11 \c [[unused]] attribute.
+ */
+#ifndef __unused
+#if CLANG_MIN_VER(3, 9) || GCC_MIN_VER(4, 2)
+#define __unused __attribute__((unused))
+#else
+#define __unused
+#endif
+#endif
+
+/**
  * \def static_assert
  * Compile-time assertion.
  *

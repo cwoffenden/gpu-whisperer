@@ -9,74 +9,109 @@
  * \c BCBlock internal union for 16-bit colour endpoints.
  */
 union RGB565 {
-	uint16_t rgb565;
+	uint16_t rgb565;   /**< Combined 16-bit RGB value. */
 	struct {
-		uint16_t b: 5;
-		uint16_t g: 6;
-		uint16_t r: 5;
+		uint16_t b: 5; /**< Blue value. */
+		uint16_t g: 6; /**< Green value. */
+		uint16_t r: 5; /**< Red value. */
 	};
 };
 
 static_assert(sizeof(RGB565) == 2, "RGB565 should be 2 bytes");
 
+/**
+ * Basic container for a compressed 4x4 block, covering BC1 and BC4 (recalling
+ * that a BC3 block is composed of a BC4 followed by BC1, and BC5 is two BC4s).
+ */
 struct BCBlock {
 	union {
+		/**
+		 * Raw byte data.
+		 */
 		uint8_t raw[8];
+		/**
+		 * The block's data viewed as BC1.
+		 */
 		struct {
+			/**
+			 * The two BC1 RGB endpoints.
+			 */
 			RGB565 endpt[2];
 			union {
-				uint32_t texels;
+				/**
+				 * Raw BC1 texel data.
+				 */
+				uint32_t __unused texels;
+			#ifndef NDEBUG
+				/**
+				 * Texel rows.
+				 */
 				struct {
-					uint8_t x0: 2;
-					uint8_t x1: 2;
-					uint8_t x2: 2;
-					uint8_t x3: 2;
+					uint8_t x0: 2; /**< Texel <tt>x = 0</tt>. */
+					uint8_t x1: 2; /**< Texel <tt>x = 1</tt>. */
+					uint8_t x2: 2; /**< Texel <tt>x = 2</tt>. */
+					uint8_t x3: 2; /**< Texel <tt>x = 3</tt>. */
 				} y[4];
+			#endif
 			};
 		} bc1;
+		/**
+		 * The block's data viewed as BC4.
+		 */
 		union {
 			struct {
-				uint64_t       : 16;
-				uint64_t texels: 48;
+				uint64_t /* endpt[2] */ : 16;
+				/**
+				 * Raw BC4 texel data.
+				 */
+				uint64_t __unused texels: 48;
 			};
 			struct {
+				/**
+				 * The two BC4 red-channel endpoints.
+				 */
 				uint8_t endpt[2];
+			#ifndef NDEBUG
 				struct __attribute__((packed)) {
-					uint32_t y0x0: 3;
-					uint32_t y0x1: 3;
-					uint32_t y0x2: 3;
-					uint32_t y0x3: 3;
+					uint32_t y0x0: 3; /**< Texel <tt>x = 0, y = 0</tt>. */
+					uint32_t y0x1: 3; /**< Texel <tt>x = 1, y = 0</tt>. */
+					uint32_t y0x2: 3; /**< Texel <tt>x = 2, y = 0</tt>. */
+					uint32_t y0x3: 3; /**< Texel <tt>x = 3, y = 0</tt>. */
 
-					uint32_t y1x0: 3;
-					uint32_t y1x1: 3;
-					uint32_t y1x2: 3;
-					uint32_t y1x3: 3;
+					uint32_t y1x0: 3; /**< Texel <tt>x = 0, y = 1</tt>. */
+					uint32_t y1x1: 3; /**< Texel <tt>x = 1, y = 1</tt>. */
+					uint32_t y1x2: 3; /**< Texel <tt>x = 2, y = 1</tt>. */
+					uint32_t y1x3: 3; /**< Texel <tt>x = 3, y = 1</tt>. */
 
-					uint32_t y2x0: 3;
-					uint32_t y2x1: 3;
-					uint32_t y2x2: 3;
-					uint32_t y2x3: 3;
+					uint32_t y2x0: 3; /**< Texel <tt>x = 0, y = 2</tt>. */
+					uint32_t y2x1: 3; /**< Texel <tt>x = 1, y = 2</tt>. */
+					uint32_t y2x2: 3; /**< Texel <tt>x = 2, y = 2</tt>. */
+					uint32_t y2x3: 3; /**< Texel <tt>x = 3, y = 2</tt>. */
 
-					uint32_t y3x0: 3;
-					uint32_t y3x1: 3;
-					uint32_t y3x2: 3;
-					uint32_t y3x3: 3;
+					uint32_t y3x0: 3; /**< Texel <tt>x = 0, y = 3</tt>. */
+					uint32_t y3x1: 3; /**< Texel <tt>x = 1, y = 3</tt>. */
+					uint32_t y3x2: 3; /**< Texel <tt>x = 2, y = 3</tt>. */
+					uint32_t y3x3: 3; /**< Texel <tt>x = 3, y = 3</tt>. */
 				};
+			#endif
 			};
 		} bc4;
-		uint64_t data;
+		/**
+		 * The block as a single 128-bit value.
+		 */
+		uint64_t __unused data;
 	};
 	BCBlock() {}
-	BCBlock(int raw0, int raw1, int raw2, int raw3, int raw4, int raw5, int raw6, int raw7) {
-		raw[0] = raw0;
-		raw[1] = raw1;
-		raw[2] = raw2;
-		raw[3] = raw3;
-		raw[4] = raw4;
-		raw[5] = raw5;
-		raw[6] = raw6;
-		raw[7] = raw7;
+	BCBlock(uint8_t raw0, uint8_t raw1, uint8_t raw2, uint8_t raw3,
+			uint8_t raw4, uint8_t raw5, uint8_t raw6, uint8_t raw7)
+#if __cplusplus >= 201103L
+		: raw { raw0, raw1, raw2, raw3, raw4, raw5, raw6, raw7 } {}
+#else
+	{
+		raw[0] = raw0; raw[1] = raw1; raw[2] = raw2; raw[3] = raw3;
+		raw[4] = raw4; raw[5] = raw5; raw[6] = raw6; raw[7] = raw7;
 	}
+#endif
 };
 
 static_assert(sizeof(BCBlock) == 8, "BC block should be 8 bytes");
@@ -87,12 +122,12 @@ static_assert(sizeof(BCBlock) == 8, "BC block should be 8 bytes");
  *
  * \note The texel pattern puts the four derived values into the first row.
  *
- * \param[out] block address of the block to fill
  * \param[in] val0 first endpoint (the target colour determined by \a fill)
  * \param[in] val1 second endpoint (the target colour determined by \a fill)
  * \param[in] fill choice of \c GL_RED, \c GL_GREEN or \c GL_BLUE channel (or \c GL_RGB for all)
+ * \param[out] block address of the block to fill
  */
-void fillBC1Block(BCBlock* _Nonnull block, unsigned val0, unsigned val1, GLenum fill) {
+static void fillBC1Block(unsigned const val0, unsigned const val1, GLenum const fill, BCBlock* _Nonnull const block) {
 	assert(block);
 	new(block) BCBlock(
 		0x00, 0x00,
@@ -127,11 +162,11 @@ void fillBC1Block(BCBlock* _Nonnull block, unsigned val0, unsigned val1, GLenum 
  *
  * \note The texel pattern puts the eight derived values into the first rows.
  *
- * \param[out] block address of the block to fill
  * \param[in] val0 first endpoint
  * \param[in] val1 second endpoint
+ * \param[out] block address of the block to fill
  */
-void fillBC4Block(BCBlock* _Nonnull block, unsigned val0, unsigned val1) {
+static void fillBC4Block(unsigned const val0, unsigned const val1, BCBlock* _Nonnull const block) {
 	assert(block);
 	new(block) BCBlock(
 		0x00, 0x00,
@@ -142,15 +177,15 @@ void fillBC4Block(BCBlock* _Nonnull block, unsigned val0, unsigned val1) {
 	block->bc4.endpt[1] = val1;
 }
 
-unsigned createBC1(GLuint txId, unsigned min0, unsigned max0, unsigned min1, unsigned max1, GLenum fill) {
+unsigned createBC1(GLuint const txId, unsigned const min0, unsigned const max0, unsigned const min1, unsigned const max1, GLenum const fill) {
 	assert(txId);
 	assert(min0 < 256 && max0 < 256 && min0 <= max0);
 	assert(min1 < 256 && max1 < 256 && min1 <= max1);
 	assert(fill >= GL_RED && fill <= GL_BLUE);
-	GLsizei gridW = (max1 + 1) - min1;
-	GLsizei gridH = (max0 + 1) - min0;
-	GLsizei count = gridW * gridH;
-	GLsizei maxWH = 32 * 32;
+	unsigned gridW = (max1 + 1) - min1;
+	unsigned gridH = (max0 + 1) - min0;
+	unsigned count = gridW * gridH;
+	unsigned maxWH = 32 * 32;
 	if (fill == GL_GREEN) {
 		maxWH = 64 * 64;
 	}
@@ -159,13 +194,13 @@ unsigned createBC1(GLuint txId, unsigned min0, unsigned max0, unsigned min1, uns
 		BCBlock* next = blocks;
 		for(unsigned gridY = min0; gridY <= max0; gridY++) {
 			for(unsigned gridX = min1; gridX <= max1; gridX++) {
-				fillBC1Block(next++, gridY, gridX, fill);
+				fillBC1Block(gridY, gridX, fill, next++);
 			}
 		}
 		glBindTexture(GL_TEXTURE_2D, txId);
 		glCompressedTexImage2D(GL_TEXTURE_2D, 0, GL_COMPRESSED_RGB_S3TC_DXT1_EXT,
-			gridW * 4, gridH * 4, 0,
-				count * sizeof(BCBlock), blocks);
+			GLsizei(gridW * 4), GLsizei(gridH * 4), 0,
+				GLsizei(count * sizeof(BCBlock)), blocks);
 		filterClampBoilerplate();
 		glFlush();
 		delete[] blocks;
@@ -176,15 +211,15 @@ unsigned createBC1(GLuint txId, unsigned min0, unsigned max0, unsigned min1, uns
 	return 0;
 }
 
-unsigned createBC3(GLuint txId, unsigned min0, unsigned max0, unsigned min1, unsigned max1, GLenum fill) {
+unsigned createBC3(GLuint const txId, unsigned const min0, unsigned const max0, unsigned const min1, unsigned const max1, GLenum const fill) {
 	assert(txId);
 	assert(min0 < 256 && max0 < 256 && min0 <= max0);
 	assert(min1 < 256 && max1 < 256 && min1 <= max1);
 	assert(fill >= GL_RED && fill <= GL_ALPHA);
-	GLsizei gridW = (max1 + 1) - min1;
-	GLsizei gridH = (max0 + 1) - min0;
-	GLsizei count = gridW * gridH;
-	GLsizei maxWH = 32 * 32;
+	unsigned gridW = (max1 + 1) - min1;
+	unsigned gridH = (max0 + 1) - min0;
+	unsigned count = gridW * gridH;
+	unsigned maxWH = 32 * 32;
 	if (fill == GL_GREEN) {
 		maxWH = 64 * 64;
 	} else {
@@ -193,27 +228,28 @@ unsigned createBC3(GLuint txId, unsigned min0, unsigned max0, unsigned min1, uns
 		}
 	}
 	if (count > 0 && count <= maxWH) {
+		// The '* 2' scattered being BC4 + BC3
 		BCBlock* const blocks = new BCBlock[count * 2];
 		BCBlock* next = blocks;
 		for(unsigned gridY = min0; gridY <= max0; gridY++) {
 			for(unsigned gridX = min1; gridX <= max1; gridX++) {
 				if (fill == GL_ALPHA) {
 					// Alpha block with endpoints
-					fillBC4Block(next++, gridY, gridX);
+					fillBC4Block(gridY, gridX, next++);
 					// Colour block set to white
-					fillBC1Block(next++, 0xFFFF, 0xFFFF, GL_RGB);
+					fillBC1Block(0xFFFF, 0xFFFF, GL_RGB, next++);
 				} else {
 					// Alpha block set to solid
-					fillBC4Block(next++, 0xFF, 0xFF);
+					fillBC4Block(0xFF, 0xFF, next++);
 					// Colour block with endpoints
-					fillBC1Block(next++, gridY, gridX, fill);
+					fillBC1Block(gridY, gridX, fill, next++);
 				}
 			}
 		}
 		glBindTexture(GL_TEXTURE_2D, txId);
 		glCompressedTexImage2D(GL_TEXTURE_2D, 0, GL_COMPRESSED_RGBA_S3TC_DXT3_EXT,
-			gridW * 4, gridH * 4, 0,
-				count * sizeof(BCBlock) * 2 /* colour + alpha */, blocks);
+			GLsizei(gridW * 4), GLsizei(gridH * 4), 0,
+				GLsizei(count * sizeof(BCBlock) * 2), blocks);
 		filterClampBoilerplate();
 		glFlush();
 		delete[] blocks;
@@ -224,25 +260,25 @@ unsigned createBC3(GLuint txId, unsigned min0, unsigned max0, unsigned min1, uns
 	return 0;
 }
 
-unsigned createBC4(GLuint txId, unsigned min0, unsigned max0, unsigned min1, unsigned max1) {
+unsigned createBC4(GLuint const txId, unsigned const min0, unsigned const max0, unsigned const min1, unsigned const max1) {
 	assert(txId);
 	assert(min0 < 256 && max0 < 256 && min0 <= max0);
 	assert(min1 < 256 && max1 < 256 && min1 <= max1);
-	GLsizei gridW = (max1 + 1) - min1;
-	GLsizei gridH = (max0 + 1) - min0;
-	GLsizei count = gridW * gridH;
+	unsigned gridW = (max1 + 1) - min1;
+	unsigned gridH = (max0 + 1) - min0;
+	unsigned count = gridW * gridH;
 	if (count > 0 && count <= 256 * 256) {
 		BCBlock* const blocks = new BCBlock[count];
 		BCBlock* next = blocks;
 		for(unsigned gridY = min0; gridY <= max0; gridY++) {
 			for(unsigned gridX = min1; gridX <= max1; gridX++) {
-				fillBC4Block(next++, gridY, gridX);
+				fillBC4Block(gridY, gridX, next++);
 			}
 		}
 		glBindTexture(GL_TEXTURE_2D, txId);
 		glCompressedTexImage2D(GL_TEXTURE_2D, 0, GL_COMPRESSED_RED_RGTC1,
-			gridW * 4, gridH * 4, 0,
-				count * sizeof(BCBlock), blocks);
+			GLsizei(gridW * 4), GLsizei(gridH * 4), 0,
+				GLsizei(count * sizeof(BCBlock)), blocks);
 		filterClampBoilerplate();
 		glFlush();
 		delete[] blocks;
