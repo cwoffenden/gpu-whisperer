@@ -409,7 +409,7 @@ GLchar const computeShaderImage[] =
 	"}\n";
 
 void computeTest() {
-	GLuint comp = compileShaderText(GL_COMPUTE_SHADER, computeShaderTexture);
+	GLuint comp = compileShaderSource(GL_COMPUTE_SHADER, computeShaderTexture);
 	GLuint prog = glCreateProgram();
 	glAttachShader(prog, comp);
 	glLinkProgram(prog);
@@ -428,7 +428,7 @@ void computeTest() {
 	GLuint srcTxName = 0;
 	glGenTextures(1, &srcTxName);
 	glActiveTexture(GL_TEXTURE0);
-	create4x4BC1Red(srcTxName);
+	//create4x4BC1Red(srcTxName); // TODO: re-enable
 
 	/*
 	uint8_t red4x4[16] = {0xFF, 0x00, 0xDB, 0xB6, 0x92, 0x6D, 0x49, 0x24};

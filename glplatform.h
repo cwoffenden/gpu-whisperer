@@ -15,6 +15,8 @@
  *
  * Whatever this is... it works fine on the tested platforms (Mac 10.5 PPC and
  * 26 ARM, with no testing in between, Debian 13 on x64 and ARM).
+ *
+ * TODO: tidy into "is this modern Mac GL", do CoreARB, otherwise old skool (ignoring anything else for now)
  */
 #ifdef __APPLE__
 #include <AvailabilityMacros.h>
@@ -24,6 +26,8 @@
 #else
 #define GL_GLEXT_PROTOTYPES
 #endif
+#else
+#define GL_GLEXT_PROTOTYPES
 #endif
 #define GLFW_INCLUDE_GLEXT
 
