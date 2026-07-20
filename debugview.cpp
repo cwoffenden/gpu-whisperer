@@ -2,6 +2,57 @@
 
 #include <cassert>
 
+#include "bcgen.h"
+
+enum DebugTexture {
+	DEBUG_RED_4x4_RGBA,
+	DEBUG_RED_4x4_BC1,
+	DEBUG_RED_4x4_BC3,
+	DEBUG_RED_4x4_BC4,
+	DEBUG_GREEN_4x4_RGBA,
+	DEBUG_GREEN_4x4_BC1,
+	DEBUG_GREEN_4x4_BC3,
+	DEBUG_GREEN_4x4_BC5,
+	DEBUG_BLUE_4x4_RGBA,
+	DEBUG_BLUE_4x4_BC1,
+	DEBUG_BLUE_4x4_BC3,
+};
+
+//**************************** BC Block Generation ****************************/
+
+/**
+ * Creates a 4x4 compressed BC3 texture with known values for testing
+ * (purposefully choosing the \e mode with a single interpolated colour).
+ *
+ * \param[in] txId pre-generated texture ID to use
+ */
+static void create4x4BC1Red(GLuint txId) {
+	unsigned count = createBC1(txId, 15, 15, 31, 31, GL_RED);
+	assert(count);
+}
+
+/**
+ * Creates a 4x4 compressed BC3 texture with known values for testing.
+ *
+ * \param[in] txId pre-generated texture ID to use
+ */
+static void create4x4BC3Red(GLuint txId) {
+	unsigned count = createBC3(txId, 31, 31, 0, 0, GL_RED);
+	assert(count);
+}
+
+/**
+ * Creates a 4x4 compressed BC4 texture with known values for testing.
+ *
+ * \param[in] txId pre-generated texture ID to use
+ */
+void create4x4BC4Red(GLuint txId) {
+	unsigned count = createBC4(txId, 255, 255, 0, 0);
+	assert(count);
+}
+
+//******************************** RGB Blocks *********************************/
+
 /**
  * Creates a 4x4 red-only uncompressed 8-bit texture with ideal BC3 values.
  *

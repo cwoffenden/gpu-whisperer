@@ -134,41 +134,6 @@ void dumpBoundChannelData(bool eight = false, ChannelIndex ch = CHANNEL_R) {
 	assert(glGetError() == 0);
 }
 
-//**************************** BC Block Generation ****************************/
-
-#if 0
-/**
- * Creates a 4x4 compressed BC3 texture with known values for testing
- * (purposefully choosing the \e mode with a single interpolated colour).
- *
- * \param[in] txId pre-generated texture ID to use
- */
-void create4x4BC1Red(GLuint txId) {
-	unsigned count = createBC1(txId, 15, 15, 31, 31, GL_RED);
-	assert(count);
-}
-
-/**
- * Creates a 4x4 compressed BC3 texture with known values for testing.
- *
- * \param[in] txId pre-generated texture ID to use
- */
-void create4x4BC3Red(GLuint txId) {
-	unsigned count = createBC3(txId, 31, 31, 0, 0, GL_RED);
-	assert(count);
-}
-
-/**
- * Creates a 4x4 compressed BC4 texture with known values for testing.
- *
- * \param[in] txId pre-generated texture ID to use
- */
-void create4x4BC4Red(GLuint txId) {
-	unsigned count = createBC4(txId, 255, 255, 0, 0);
-	assert(count);
-}
-#endif
-
 //**************************** Buffer Verification ****************************/
 
 /**
