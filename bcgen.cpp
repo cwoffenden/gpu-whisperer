@@ -1,6 +1,7 @@
 #include "bcgen.h"
 
 #include <cassert>
+#include <cstring>
 #include <new>
 
 #include "glcommon.h"
@@ -380,8 +381,14 @@ unsigned createBC5(GLuint const txId, unsigned const min0, unsigned const max0, 
 		for(unsigned gridY = min0; gridY <= max0; gridY++) {
 			for(unsigned gridX = min1; gridX <= max1; gridX++) {
 				if (fill == GL_RED) {
+					// Red block to endpoints
 					fillBC4Block(gridY, gridX, &next->red);
+					// Zero unused green block
+					memset(&next->green, 0, sizeof(BC4Block));
 				} else {
+					// Zero unused red block
+					memset(&next->red, 0, sizeof(BC4Block));
+					// Green block to endpoints
 					fillBC4Block(gridY, gridX, &next->green);
 				}
 				next++;
