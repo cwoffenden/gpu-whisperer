@@ -120,12 +120,16 @@
  * Attribute that marks a function, parameter, variable, etc., as unused,
  * silencing any \c -Wunused warnings.
  *
- * \note This is a Clang 3.9 and GCC 4.2 onwards only feature (here for
+ * \note This is a Clang 3.9 and GCC 4.9 onwards only feature (here for
  * compatibility with Xcode). Earlier compiler versions may support it with C,
  * but not C++ or Objective-C. Analogous to the C++11 \c [[unused]] attribute.
+ *
+ * \note It should work in GCC 3.x versions but is warning that the attribute is
+ * ignored. Older compilers are picky about the placement, and only after the
+ * variable name works everywhere.
  */
 #ifndef __unused
-#if CLANG_MIN_VER(3, 9) || GCC_MIN_VER(4, 2)
+#if CLANG_MIN_VER(3, 9) || GCC_MIN_VER(4, 9)
 #define __unused __attribute__((unused))
 #else
 #define __unused
@@ -170,4 +174,13 @@
 #if defined(__APPLE__)
 #include <machine/endian.h>
 #endif
+#endif
+
+/*
+ * Older Xcode defines this for debug builds, then library code fails to compile
+ * when RTTI is disabled. Setting _GLIBCXX_NO_ASSERTIONS is having no effect.
+ */
+#if defined(__APPLE__) && defined(_GLIBCXX_DEBUG)
+#undef _GLIBCXX_DEBUG
+#undef _GLIBCXX_DEBUG_PEDANTIC
 #endif
