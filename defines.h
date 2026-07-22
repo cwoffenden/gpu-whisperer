@@ -168,11 +168,12 @@
 /*
  * Endianness (we're only interested in capturing BE, assuming LE otherwise).
  */
-#if defined(__linux__) || __has_include(<endian.h>)
-#include <endian.h>
-#else
+#ifndef XP_BIG_ENDIAN
 #if defined(__APPLE__)
 #include <machine/endian.h>
+#endif
+#if (defined(__BYTE_ORDER) && (__BYTE_ORDER == __BIG_ENDIAN)) || (defined(BYTE_ORDER) && (BYTE_ORDER == BIG_ENDIAN))
+#define XP_BIG_ENDIAN
 #endif
 #endif
 

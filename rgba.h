@@ -7,6 +7,7 @@
 #include "defines.h"
 
 #include <cstring>
+#undef _GLIBCXX_DEBUG
 #include <algorithm>
 
 //*****************************************************************************/

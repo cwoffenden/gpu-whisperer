@@ -15,9 +15,15 @@ namespace /*anonymous*/ {
 union RGB565 {
 	uint16_t rgb565;   /**< Combined 16-bit RGB value. */
 	struct {
+	#ifdef XP_BIG_ENDIAN
+		uint16_t r: 5; /**< Red value. */
+		uint16_t g: 6; /**< Green value. */
+		uint16_t b: 5; /**< Blue value. */
+	#else
 		uint16_t b: 5; /**< Blue value. */
 		uint16_t g: 6; /**< Green value. */
 		uint16_t r: 5; /**< Red value. */
+	#endif
 	};
 };
 
@@ -229,6 +235,10 @@ void fillBC1Block(unsigned const val0, unsigned const val1, GLenum const fill, B
 		endpt[0].rgb565 = val0;
 		endpt[1].rgb565 = val1;
 	}
+#ifdef XP_BIG_ENDIAN
+	endpt[0].rgb565 = ((endpt[0].rgb565 & 0x00FF) << 8) | ((endpt[0].rgb565 & 0xFF00) >> 8);
+	endpt[1].rgb565 = ((endpt[1].rgb565 & 0x00FF) << 8) | ((endpt[1].rgb565 & 0xFF00) >> 8);
+#endif
 }
 
 /**
