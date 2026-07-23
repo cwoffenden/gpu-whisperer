@@ -324,8 +324,8 @@ unsigned createBC3(GLuint const txId, unsigned const min0, unsigned const max0, 
 				if (fill == GL_ALPHA) {
 					// Alpha block with endpoints
 					fillBC4Block(gridY, gridX, &next->alpha);
-					// Colour block set to white
-					fillBC1Block(0xFFFF, 0xFFFF, GL_RGB, &next->color);
+					// Colour block set to black
+					memset(&next->color, 0, sizeof(BC1Block));
 				} else {
 					// Alpha block set to solid
 					memset(&next->alpha, 0xFF, sizeof(BC4Block));

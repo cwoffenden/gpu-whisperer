@@ -11,22 +11,28 @@ namespace /*anonymous*/ {
  * support (and memory layout).
  */
 enum DebugTexture {
-	DEBUG_UNSUPPORTED = 0, /**< Placeholder texture to show if generation fails. */
-	DEBUG_4x4_RGBx4_RED,   /**<  4x4 8-bit RGBA texture with a red-only 4-colour pattern. */
-	DEBUG_4x4_BC1_RED,     /**<  BC1 approximating <tt>DEBUG_4x4_RGBx4_RED</tt>. */
-	DEBUG_4x4_BC3_RED,     /**<  BC3 approximating <tt>DEBUG_4x4_RGBx4_RED</tt>. */
-	DEBUG_4x4_RGBx8_RED,   /**<  4x4 8-bit RGBA texture with a red-only 8-colour pattern. */
-	DEBUG_4x4_BC4_RED,     /**<  BC4 approximating <tt>DEBUG_4x4_RGBx8_RED</tt>. */
-	DEBUG_4x4_BC5_RED,     /**<  BC5 approximating <tt>DEBUG_4x4_RGBx8_RED</tt>. */
-	DEBUG_4x4_RGBx4_GREEN, /**<  4x4 8-bit RGBA texture with a green-only 4-colour pattern. */
-	DEBUG_4x4_BC1_GREEN,   /**<  BC1 approximating <tt>DEBUG_4x4_RGBx4_GREEN</tt>. */
-	DEBUG_4x4_BC3_GREEN,   /**<  BC3 approximating <tt>DEBUG_4x4_RGBx4_GREEN</tt>. */
-	DEBUG_4x4_RGBx8_GREEN, /**<  4x4 8-bit RGBA texture with a green-only 8-colour pattern. */
-	DEBUG_4x4_BC5_GREEN,   /**<  BC5 approximating <tt>DEBUG_4x4_RGBx8_GREEN</tt>. */
-	DEBUG_4x4_RGBx4_BLUE,  /**<  4x4 8-bit RGBA texture with a blue-only 8-colour pattern. */
-	DEBUG_4x4_BC1_BLUE,    /**<  BC1 approximating <tt>DEBUG_4x4_RGBx4_BLUE</tt>. */
-	DEBUG_4x4_BC3_BLUE,    /**<  BC1 approximating <tt>DEBUG_4x4_RGBx4_BLUE</tt>. */
-	DEBUG_TEXTURE_COUNT    /**<  Number of debug textures. */
+	DEBUG_UNSUPPORTED = 0,  /**< Placeholder texture to show if generation fails. */
+	DEBUG_4x4_RGBx4_RED,    /**<  4x4 8-bit RGB texture with a red-only 4-colour pattern. */
+	DEBUG_4x4_BC1_RED,      /**<  BC1 approximating <tt>DEBUG_4x4_RGBx4_RED</tt>. */
+	DEBUG_4x4_BC3_RED,      /**<  BC3 approximating <tt>DEBUG_4x4_RGBx4_RED</tt>. */
+	DEBUG_4x4_RGBx8_RED,    /**<  4x4 8-bit RGB texture with a red-only 8-colour pattern. */
+	DEBUG_4x4_BC4_RED,      /**<  BC4 approximating <tt>DEBUG_4x4_RGBx8_RED</tt>. */
+	DEBUG_4x4_BC5_RED,      /**<  BC5 approximating <tt>DEBUG_4x4_RGBx8_RED</tt>. */
+	DEBUG_4x4_RGBx4_GREEN,  /**<  4x4 8-bit RGB texture with a green-only 4-colour pattern. */
+	DEBUG_4x4_BC1_GREEN,    /**<  BC1 approximating <tt>DEBUG_4x4_RGBx4_GREEN</tt>. */
+	DEBUG_4x4_BC3_GREEN,    /**<  BC3 approximating <tt>DEBUG_4x4_RGBx4_GREEN</tt>. */
+	DEBUG_4x4_RGBx8_GREEN,  /**<  4x4 8-bit RGB texture with a green-only 8-colour pattern. */
+	DEBUG_4x4_BC5_GREEN,    /**<  BC5 approximating <tt>DEBUG_4x4_RGBx8_GREEN</tt>. */
+	DEBUG_4x4_RGBx4_BLUE,   /**<  4x4 8-bit RGB texture with a blue-only 8-colour pattern. */
+	DEBUG_4x4_BC1_BLUE,     /**<  BC1 approximating <tt>DEBUG_4x4_RGBx4_BLUE</tt>. */
+	DEBUG_4x4_BC3_BLUE,     /**<  BC1 approximating <tt>DEBUG_4x4_RGBx4_BLUE</tt>. */
+	DEBUG_4x4_RGBAx8_LUMA,  /**<  4x4 8-bit RGBA texture with an luminance-only 4-colour pattern. */
+	DEBUG_4x4_LATC1_LUMA,   /**<  LATC1 approximating <tt>DEBUG_4x4_RGBAx8_LUMA</tt>. */
+	DEBUG_4x4_LATC2_LUMA,   /**<  LATC2 approximating <tt>DEBUG_4x4_RGBAx8_LUMA</tt>. */
+	DEBUG_4x4_RGBAx8_ALPHA, /**<  4x4 8-bit RGBA texture with an alpha-only 4-colour pattern. */
+	DEBUG_4x4_BC3_ALPHA,    /**<  BC3 approximating <tt>DEBUG_4x4_RGBAx8_ALPHA</tt>. */
+	DEBUG_4x4_LATC2_ALPHA,  /**<  LATC2 approximating <tt>DEBUG_4x4_RGBAx8_ALPHA</tt>. */
+	DEBUG_TEXTURE_COUNT     /**<  Number of debug textures. */
 };
 
 /**
@@ -37,7 +43,7 @@ GLuint texture[DEBUG_TEXTURE_COUNT] = {};
 //******************************** Test Blocks ********************************/
 
 /**
- * Creates a 4x4 uncompressed 8-bit RGB texture with ideal BC3 values.
+ * Creates a 4x4 uncompressed 8-bit RGB texture with ideal known BC3 values.
  *
  * \param[in] txId pre-generated texture ID to use
  * \param[in] fill which colour channel to use (e.g.: <tt>GL_RED</tt>)
@@ -58,7 +64,7 @@ void create4x4BC3Vals(GLuint const txId, GLenum const fill) {
 }
 
 /**
- * Creates a 4x4 uncompressed 8-bit RGB texture with ideal BC4 values.
+ * Creates a 4x4 uncompressed 8-bit RGB texture with ideal known BC4 values.
  *
  * \note This will create a \c GL_BLUE fill but blue is not valid for BC5.
  *
@@ -77,6 +83,39 @@ void create4x4BC4Vals(GLuint const txId, GLenum const fill) {
 		0xB6, 0x00, 0x00, 0xDB, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0x00, 0x00
 	};
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 4, 4, 0, GL_RGB, GL_UNSIGNED_BYTE, block + (GL_BLUE - fill));
+	filterClampBoilerplate();
+}
+
+/**
+ * Creates a 4x4 uncompressed 8-bit RGBA texture with ideal known LATC values.
+ *
+ * \param[in] txId pre-generated texture ID to use
+ * \param[in] fill which channel to use (e.g.: <tt>GL_LUMINANCE</tt>)
+ */
+void create4x4LATCVals(GLuint const txId, GLenum const fill) {
+	assert(txId);
+	assert(fill == GL_LUMINANCE || fill == GL_ALPHA);
+	glBindTexture(GL_TEXTURE_2D, txId);
+	uint8_t const table[16] = {
+		0xFF, 0x00, 0xDB, 0xB6, 0x92, 0x6D, 0x49, 0x24,
+		0x24, 0x49, 0x6D, 0x92, 0xB6, 0xDB, 0x00, 0xFF,
+	};
+	uint8_t block[4 * 4 * 4];
+	uint8_t* next = block;
+	for (unsigned n = 0; n < 16; n++) {
+		if (fill == GL_LUMINANCE) {
+			*next++ = table[n];
+			*next++ = table[n];
+			*next++ = table[n];
+			*next++ = 0xFF;
+		} else {
+			*next++ = 0x00;
+			*next++ = 0x00;
+			*next++ = 0x00;
+			*next++ = table[n];
+		}
+	}
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 4, 4, 0, GL_RGBA, GL_UNSIGNED_BYTE, block);
 	filterClampBoilerplate();
 }
 
@@ -205,6 +244,14 @@ void createDebugTextures() {
 	create4x4BC3Vals(texture[DEBUG_4x4_RGBx4_BLUE], GL_BLUE);
 	createBC1(texture[DEBUG_4x4_BC1_BLUE], 31, 31, 0, 0, GL_BLUE);
 	createBC3(texture[DEBUG_4x4_BC3_BLUE], 31, 31, 0, 0, GL_BLUE);
+	// Luma tests
+	create4x4LATCVals(texture[DEBUG_4x4_RGBAx8_LUMA], GL_LUMINANCE);
+	createBC4(texture[DEBUG_4x4_LATC1_LUMA], 255, 255, 0, 0, GL_COMPRESSED_LUMINANCE_LATC1_EXT);
+	createBC5(texture[DEBUG_4x4_LATC2_LUMA], 255, 255, 0, 0, GL_LUMINANCE, GL_COMPRESSED_LUMINANCE_ALPHA_LATC2_EXT);
+	// Alpha tests
+	create4x4LATCVals(texture[DEBUG_4x4_RGBAx8_ALPHA], GL_ALPHA);
+	createBC3(texture[DEBUG_4x4_BC3_ALPHA], 255, 255, 0, 0, GL_ALPHA);
+	createBC5(texture[DEBUG_4x4_LATC2_ALPHA], 255, 255, 0, 0, GL_ALPHA, GL_COMPRESSED_LUMINANCE_ALPHA_LATC2_EXT);
 }
 
 /**
@@ -254,6 +301,18 @@ const char* getDebugTextureType(unsigned const idx) {
 		return "BC1 blue";
 	case DEBUG_4x4_BC3_BLUE:
 		return "BC3 blue";
+	case DEBUG_4x4_RGBAx8_LUMA:
+		return "RGBA luma, 8-shades (LATC-style)";
+	case DEBUG_4x4_LATC1_LUMA:
+		return "LATC1 luma";
+	case DEBUG_4x4_LATC2_LUMA:
+		return "LATC2 luma";
+	case DEBUG_4x4_RGBAx8_ALPHA:
+		return "RGBA alpha, 8-shades (BC3-style)";
+	case DEBUG_4x4_BC3_ALPHA:
+		return "BC3 alpha";
+	case DEBUG_4x4_LATC2_ALPHA:
+		return "LATC2 alpha";
 	default:
 		return "Unknown";
 	}
@@ -273,13 +332,15 @@ void showDebugView(GLFWwindow* const window, ContextVersion const glVers) {
 	GLuint vboId = 0;
 	createTexturedQuad(glVers, vaoId, vboId, true);
 	createDebugTextures();
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	unsigned showingTxIdx = DEBUG_TEXTURE_COUNT;
 	unsigned showingTicks = 0;
 	while (!glfwWindowShouldClose(window)) {
 		int fbW, fbH;
 		glfwGetFramebufferSize(window, &fbW, &fbH);
 		glViewport(0, 0, fbW, fbH);
-		glClearColor(0.3f, 0.4f, 0.8f, 1.0f);
+		glClearColor(1.0f, 0.0f, 1.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 		if (showingTicks == 0) {
 			showingTicks = 120;
@@ -305,6 +366,7 @@ void showDebugView(GLFWwindow* const window, ContextVersion const glVers) {
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
+	glDisable(GL_BLEND);
 	deleteDebugTextures();
 	deleteTexturedQuad(glVers, vaoId, vboId);
 	deleteVertFragShaders(prog);
