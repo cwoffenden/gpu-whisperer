@@ -13,29 +13,55 @@ namespace /*anonymous*/ {
  */
 enum DebugTexture {
 	DEBUG_UNSUPPORTED = 0,  /**< Placeholder texture to show if generation fails. */
-	DEBUG_4x4_RGBx4_RED,    /**<  4x4 8-bit RGB texture with a red-only 4-colour pattern. */
-	DEBUG_4x4_BC1_RED,      /**<  BC1 approximating <tt>DEBUG_4x4_RGBx4_RED</tt>. */
-	DEBUG_4x4_BC3_RED,      /**<  BC3 approximating <tt>DEBUG_4x4_RGBx4_RED</tt>. */
-	DEBUG_4x4_RGBx8_RED,    /**<  4x4 8-bit RGB texture with a red-only 8-colour pattern. */
-	DEBUG_4x4_BC4_RED,      /**<  BC4 approximating <tt>DEBUG_4x4_RGBx8_RED</tt>. */
-	DEBUG_4x4_BC5_RED,      /**<  BC5 approximating <tt>DEBUG_4x4_RGBx8_RED</tt>. */
-	DEBUG_4x4_RGBx4_GREEN,  /**<  4x4 8-bit RGB texture with a green-only 4-colour pattern. */
-	DEBUG_4x4_BC1_GREEN,    /**<  BC1 approximating <tt>DEBUG_4x4_RGBx4_GREEN</tt>. */
-	DEBUG_4x4_BC3_GREEN,    /**<  BC3 approximating <tt>DEBUG_4x4_RGBx4_GREEN</tt>. */
-	DEBUG_4x4_RGBx8_GREEN,  /**<  4x4 8-bit RGB texture with a green-only 8-colour pattern. */
-	DEBUG_4x4_BC5_GREEN,    /**<  BC5 approximating <tt>DEBUG_4x4_RGBx8_GREEN</tt>. */
-	DEBUG_4x4_RGBx4_BLUE,   /**<  4x4 8-bit RGB texture with a blue-only 8-colour pattern. */
-	DEBUG_4x4_BC1_BLUE,     /**<  BC1 approximating <tt>DEBUG_4x4_RGBx4_BLUE</tt>. */
-	DEBUG_4x4_BC3_BLUE,     /**<  BC1 approximating <tt>DEBUG_4x4_RGBx4_BLUE</tt>. */
-	DEBUG_4x4_RGBAx8_LUMA,  /**<  4x4 8-bit RGBA texture with an luminance-only 4-colour pattern. */
-	DEBUG_4x4_LATC1_LUMA,   /**<  LATC1 approximating <tt>DEBUG_4x4_RGBAx8_LUMA</tt>. */
-	DEBUG_4x4_LATC2_LUMA,   /**<  LATC2 approximating <tt>DEBUG_4x4_RGBAx8_LUMA</tt>. */
-	DEBUG_4x4_3DC_LUMA,
-	DEBUG_4x4_RGBAx8_ALPHA, /**<  4x4 8-bit RGBA texture with an alpha-only 4-colour pattern. */
-	DEBUG_4x4_BC3_ALPHA,    /**<  BC3 approximating <tt>DEBUG_4x4_RGBAx8_ALPHA</tt>. */
-	DEBUG_4x4_LATC2_ALPHA,  /**<  LATC2 approximating <tt>DEBUG_4x4_RGBAx8_ALPHA</tt>. */
-	DEBUG_4x4_3DC_ALPHA,
-	DEBUG_TEXTURE_COUNT     /**<  Number of debug textures. */
+	DEBUG_4x4_RGBx4_RED,    /**< 4x4 8-bit RGB texture with a red-only \c TABLE_4 pattern. */
+	DEBUG_4x4_BC1_RED,      /**< BC1 approximating <tt>DEBUG_4x4_RGBx4_RED</tt>. */
+	DEBUG_4x4_BC3_RED,      /**< BC3 approximating <tt>DEBUG_4x4_RGBx4_RED</tt>. */
+	DEBUG_4x4_RGBx8_RED,    /**< 4x4 8-bit RGB texture with a red-only \c TABLE_8 pattern. */
+	DEBUG_4x4_REDx8_RED,    /**< 4x4 8-bit red-only texture with a \c TABLE_8 pattern. */
+	DEBUG_4x4_RGx8_RED,     /**< 4x4 8-bit red/green texture with a red-only \c TABLE_8 pattern. */
+	DEBUG_4x4_BC4_RED,      /**< BC4 approximating <tt>DEBUG_4x4_RGBx8_RED</tt>. */
+	DEBUG_4x4_BC5_RED,      /**< BC5 approximating <tt>DEBUG_4x4_RGBx8_RED</tt>. */
+	DEBUG_4x4_RGBx4_GREEN,  /**< 4x4 8-bit RGB texture with a green-only \c TABLE_4 pattern. */
+	DEBUG_4x4_BC1_GREEN,    /**< BC1 approximating <tt>DEBUG_4x4_RGBx4_GREEN</tt>. */
+	DEBUG_4x4_BC3_GREEN,    /**< BC3 approximating <tt>DEBUG_4x4_RGBx4_GREEN</tt>. */
+	DEBUG_4x4_RGBx8_GREEN,  /**< 4x4 8-bit RGB texture with a green-only \c TABLE_8 pattern. */
+	DEBUG_4x4_RGx8_GREEN,   /**< 4x4 8-bit red/green texture with a green-only \c TABLE_8 pattern. */
+	DEBUG_4x4_BC5_GREEN,    /**< BC5 approximating <tt>DEBUG_4x4_RGBx8_GREEN</tt>. */
+	DEBUG_4x4_RGBx4_BLUE,   /**< 4x4 8-bit RGB texture with a blue-only \c TABLE_4 pattern. */
+	DEBUG_4x4_BC1_BLUE,     /**< BC1 approximating <tt>DEBUG_4x4_RGBx4_BLUE</tt>. */
+	DEBUG_4x4_BC3_BLUE,     /**< BC1 approximating <tt>DEBUG_4x4_RGBx4_BLUE</tt>. */
+	DEBUG_4x4_RGBAx8_LUMA,  /**< 4x4 8-bit RGBA texture with a luminance-only \c TABLE_8 pattern. */
+	DEBUG_4x4_LUMAx8_LUMA,  /**< 4x4 8-bit luminance-only texture with a \c TABLE_8 pattern. */
+	DEBUG_4x4_LAx8_LUMA,    /**< 4x4 8-bit luminance/alpha texture with a luminance-only \c TABLE_8 pattern. */
+	DEBUG_4x4_LATC1_LUMA,   /**< LATC1 approximating <tt>DEBUG_4x4_RGBAx8_LUMA</tt>. */
+	DEBUG_4x4_LATC2_LUMA,   /**< LATC2 approximating <tt>DEBUG_4x4_RGBAx8_LUMA</tt>. */
+	DEBUG_4x4_3DC_LUMA,     /**< 3DC approximating <tt>DEBUG_4x4_RGBAx8_LUMA</tt>. */
+	DEBUG_4x4_RGBAx8_ALPHA, /**< 4x4 8-bit RGBA texture with an alpha-only \c TABLE_8 pattern. */
+	DEBUG_4x4_LAx8_ALPHA,   /**< 4x4 8-bit luminance/alpha texture with an alpha-only \c TABLE_8 pattern. */
+	DEBUG_4x4_BC3_ALPHA,    /**< BC3 approximating <tt>DEBUG_4x4_RGBAx8_ALPHA</tt>. */
+	DEBUG_4x4_LATC2_ALPHA,  /**< LATC2 approximating <tt>DEBUG_4x4_RGBAx8_ALPHA</tt>. */
+	DEBUG_4x4_3DC_ALPHA,    /**< 3DC approximating <tt>DEBUG_4x4_RGBAx8_ALPHA</tt>. */
+	DEBUG_TEXTURE_COUNT     /**< Number of debug textures. */
+};
+
+/**
+ * Known 4x4 pattern for BC1 and similar 4-value encodings.
+ */
+uint8_t const TABLE_4[4 * 4] = {
+	0xFF, 0x00, 0xAA, 0x55,
+	0x00, 0xAA, 0x55, 0xFF,
+	0xAA, 0x55, 0xFF, 0x00,
+	0x55, 0xFF, 0x00, 0xAA,
+};
+
+/**
+ * Known 4x4 pattern for BC1 and similar 8-value encodings.
+ */
+uint8_t const TABLE_8[4 * 4] = {
+	0xFF, 0x00, 0xDB, 0xB6,
+	0x92, 0x6D, 0x49, 0x24,
+	0x24, 0x49, 0x6D, 0x92,
+	0xB6, 0xDB, 0x00, 0xFF,
 };
 
 /**
@@ -46,6 +72,8 @@ enum DebugTexture {
  */
 const char* getDebugTextureInfo(unsigned const type) {
 	switch (type) {
+	case DEBUG_UNSUPPORTED:
+		return "Unsupported";
 	case DEBUG_4x4_RGBx4_RED:
 		return "RGB red, 4-shades (BC3-style)";
 	case DEBUG_4x4_BC1_RED:
@@ -54,6 +82,10 @@ const char* getDebugTextureInfo(unsigned const type) {
 		return "BC3 red";
 	case DEBUG_4x4_RGBx8_RED:
 		return "RGB red, 8-shades (BC4-style)";
+	case DEBUG_4x4_REDx8_RED:
+		return "Red-only, 8-shades (BC4-style)";
+	case DEBUG_4x4_RGx8_RED:
+		return "RG red, 8-shades (BC4-style)";
 	case DEBUG_4x4_BC4_RED:
 		return "BC4 red";
 	case DEBUG_4x4_BC5_RED:
@@ -66,6 +98,8 @@ const char* getDebugTextureInfo(unsigned const type) {
 		return "BC3 green";
 	case DEBUG_4x4_RGBx8_GREEN:
 		return "RGB green, 8-shades (BC4-style)";
+	case DEBUG_4x4_RGx8_GREEN:
+		return "RG green, 8-shades (BC4-style)";
 	case DEBUG_4x4_BC5_GREEN:
 		return "BC5 green";
 	case DEBUG_4x4_RGBx4_BLUE:
@@ -75,17 +109,27 @@ const char* getDebugTextureInfo(unsigned const type) {
 	case DEBUG_4x4_BC3_BLUE:
 		return "BC3 blue";
 	case DEBUG_4x4_RGBAx8_LUMA:
-		return "RGBA luma, 8-shades (LATC-style)";
+		return "RGBA grey, 8-shades (LATC-style)";
+	case DEBUG_4x4_LUMAx8_LUMA:
+		return "Luminance, 8-shades (LATC-style)";
+	case DEBUG_4x4_LAx8_LUMA:
+		 return "Luminance/alpha grey, 8-shades (LATC-style)";
 	case DEBUG_4x4_LATC1_LUMA:
-		return "LATC1 luma";
+		return "LATC1 luminance";
 	case DEBUG_4x4_LATC2_LUMA:
-		return "LATC2 luma";
+		return "LATC2 luminance";
+	case DEBUG_4x4_3DC_LUMA:
+		return "3DC luminance";
 	case DEBUG_4x4_RGBAx8_ALPHA:
 		return "RGBA alpha, 8-shades (BC3-style)";
+	case DEBUG_4x4_LAx8_ALPHA:
+		return "Luminance/alpha alpha, 8-shades (LATC-style)";
 	case DEBUG_4x4_BC3_ALPHA:
 		return "BC3 alpha";
 	case DEBUG_4x4_LATC2_ALPHA:
 		return "LATC2 alpha";
+	case DEBUG_4x4_3DC_ALPHA:
+		return "3DC alpha";
 	default:
 		return "Unknown";
 	}
@@ -152,23 +196,19 @@ void create4x4LATCVals(GLuint const txId, GLenum const fill) {
 	assert(txId);
 	assert(fill == GL_LUMINANCE || fill == GL_ALPHA);
 	glBindTexture(GL_TEXTURE_2D, txId);
-	uint8_t const table[16] = {
-		0xFF, 0x00, 0xDB, 0xB6, 0x92, 0x6D, 0x49, 0x24,
-		0x24, 0x49, 0x6D, 0x92, 0xB6, 0xDB, 0x00, 0xFF,
-	};
 	uint8_t block[4 * 4 * 4];
 	uint8_t* next = block;
 	for (unsigned n = 0; n < 16; n++) {
 		if (fill == GL_LUMINANCE) {
-			*next++ = table[n];
-			*next++ = table[n];
-			*next++ = table[n];
+			*next++ = TABLE_8[n];
+			*next++ = TABLE_8[n];
+			*next++ = TABLE_8[n];
 			*next++ = 0xFF;
 		} else {
 			*next++ = 0x00;
 			*next++ = 0x00;
 			*next++ = 0x00;
-			*next++ = table[n];
+			*next++ = TABLE_8[n];
 		}
 	}
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 4, 4, 0, GL_RGBA, GL_UNSIGNED_BYTE, block);

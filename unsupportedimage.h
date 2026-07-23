@@ -1,4 +1,10 @@
 /**
+ * \file unsupportedimage.h
+ * Convenience for keeping these almost 100 lines of data out of the code.
+ */
+#pragma once
+
+/**
  * \e Unsupported 16x16 RGBA image (it's the Netscape broken image, something to
  * show when a texture format is unsupported).
  *
@@ -6,7 +12,7 @@
  * GL, arranged in rows. All the test textures are orientated for extracting,
  * not display, so an upside down shader is used to draw them.
  */
-uint8_t const UNSUPPORTED_IMAGE_RGBA[16][16 * 4] = {
+static uint8_t const UNSUPPORTED_IMAGE_RGBA[16][16 * 4] = {
 	{
 		0x4D, 0x66, 0xCE, 0xFF, 0x00, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x00, 0xFF,
 		0x00, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x00, 0xFF,
