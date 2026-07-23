@@ -36,6 +36,59 @@ enum DebugTexture {
 };
 
 /**
+ * Returns a descriptive string for a debug texture.
+ *
+ * \param type one of the \c DebugTexture entries
+ * \return a descriptive string
+ */
+const char* getDebugTextureInfo(unsigned const type) {
+	switch (type) {
+	case DEBUG_4x4_RGBx4_RED:
+		return "RGB red, 4-shades (BC3-style)";
+	case DEBUG_4x4_BC1_RED:
+		return "BC1 red";
+	case DEBUG_4x4_BC3_RED:
+		return "BC3 red";
+	case DEBUG_4x4_RGBx8_RED:
+		return "RGB red, 8-shades (BC4-style)";
+	case DEBUG_4x4_BC4_RED:
+		return "BC4 red";
+	case DEBUG_4x4_BC5_RED:
+		return "BC5 red";
+	case DEBUG_4x4_RGBx4_GREEN:
+		return "RGB green, 4-shades (BC3-style)";
+	case DEBUG_4x4_BC1_GREEN:
+		return "BC1 green";
+	case DEBUG_4x4_BC3_GREEN:
+		return "BC3 green";
+	case DEBUG_4x4_RGBx8_GREEN:
+		return "RGB green, 8-shades (BC4-style)";
+	case DEBUG_4x4_BC5_GREEN:
+		return "BC5 green";
+	case DEBUG_4x4_RGBx4_BLUE:
+		return "RGB blue, 4-shades (BC3-style)";
+	case DEBUG_4x4_BC1_BLUE:
+		return "BC1 blue";
+	case DEBUG_4x4_BC3_BLUE:
+		return "BC3 blue";
+	case DEBUG_4x4_RGBAx8_LUMA:
+		return "RGBA luma, 8-shades (LATC-style)";
+	case DEBUG_4x4_LATC1_LUMA:
+		return "LATC1 luma";
+	case DEBUG_4x4_LATC2_LUMA:
+		return "LATC2 luma";
+	case DEBUG_4x4_RGBAx8_ALPHA:
+		return "RGBA alpha, 8-shades (BC3-style)";
+	case DEBUG_4x4_BC3_ALPHA:
+		return "BC3 alpha";
+	case DEBUG_4x4_LATC2_ALPHA:
+		return "LATC2 alpha";
+	default:
+		return "Unknown";
+	}
+}
+
+/**
  * Debug texture IDs.
  */
 GLuint texture[DEBUG_TEXTURE_COUNT] = {};
@@ -264,59 +317,6 @@ void deleteDebugTextures() {
 		texture[n] = 0;
 	}
 }
-
-/**
- * Returns a descriptive string for a debug texture.
- *
- * \param idx one of the \c DebugTexture entries
- * \return a descriptive string
- */
-const char* getDebugTextureType(unsigned const idx) {
-	switch (idx) {
-	case DEBUG_4x4_RGBx4_RED:
-		return "RGB red, 4-shades (BC3-style)";
-	case DEBUG_4x4_BC1_RED:
-		return "BC1 red";
-	case DEBUG_4x4_BC3_RED:
-		return "BC3 red";
-	case DEBUG_4x4_RGBx8_RED:
-		return "RGB red, 8-shades (BC4-style)";
-	case DEBUG_4x4_BC4_RED:
-		return "BC4 red";
-	case DEBUG_4x4_BC5_RED:
-		return "BC5 red";
-	case DEBUG_4x4_RGBx4_GREEN:
-		return "RGB green, 4-shades (BC3-style)";
-	case DEBUG_4x4_BC1_GREEN:
-		return "BC1 green";
-	case DEBUG_4x4_BC3_GREEN:
-		return "BC3 green";
-	case DEBUG_4x4_RGBx8_GREEN:
-		return "RGB green, 8-shades (BC4-style)";
-	case DEBUG_4x4_BC5_GREEN:
-		return "BC5 green";
-	case DEBUG_4x4_RGBx4_BLUE:
-		return "RGB blue, 4-shades (BC3-style)";
-	case DEBUG_4x4_BC1_BLUE:
-		return "BC1 blue";
-	case DEBUG_4x4_BC3_BLUE:
-		return "BC3 blue";
-	case DEBUG_4x4_RGBAx8_LUMA:
-		return "RGBA luma, 8-shades (LATC-style)";
-	case DEBUG_4x4_LATC1_LUMA:
-		return "LATC1 luma";
-	case DEBUG_4x4_LATC2_LUMA:
-		return "LATC2 luma";
-	case DEBUG_4x4_RGBAx8_ALPHA:
-		return "RGBA alpha, 8-shades (BC3-style)";
-	case DEBUG_4x4_BC3_ALPHA:
-		return "BC3 alpha";
-	case DEBUG_4x4_LATC2_ALPHA:
-		return "LATC2 alpha";
-	default:
-		return "Unknown";
-	}
-}
 }
 
 //*****************************************************************************/
@@ -349,12 +349,13 @@ void showDebugView(GLFWwindow* const window, ContextVersion const glVers) {
 				showingTxIdx  = DEBUG_4x4_RGBx4_RED;
 			}
 			glBindTexture(GL_TEXTURE_2D, texture[showingTxIdx]);
+			const char* info = getDebugTextureInfo(showingTxIdx);
 			if (doesBoundTextureHaveContent()) {
-				printf("Showing texture: %s\n", getDebugTextureType(showingTxIdx));
+				printf("Showing texture: %s\n", info);
 			} else {
 				glBindTexture(GL_TEXTURE_2D, texture[DEBUG_UNSUPPORTED]);
 				if (doesBoundTextureHaveContent()) {
-					printf("Fallback for: %s\n", getDebugTextureType(showingTxIdx));
+					printf("Fallback for: %s\n", info);
 				} else {
 					printf("Total texture failure\n");
 				}
