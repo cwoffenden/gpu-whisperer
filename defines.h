@@ -178,8 +178,11 @@
 #endif
 
 /*
- * Older Xcode defines this for debug builds, then library code fails to compile
- * when RTTI is disabled. Setting _GLIBCXX_NO_ASSERTIONS is having no effect.
+ * Older Xcode defines these for debug builds (via GCC_PREPROCESSOR_DEFINITIONS
+ * in the .pbxproj file, editable from the Target Info dialog), then library
+ * code fails to compile when RTTI is disabled (e.g.: <algorithm>). Setting
+ * _GLIBCXX_NO_ASSERTIONS has no effect, it either needs the preprocessor flags
+ * removing from the target or undef'ing here.
  */
 #if defined(__APPLE__) && defined(_GLIBCXX_DEBUG)
 #undef _GLIBCXX_DEBUG
